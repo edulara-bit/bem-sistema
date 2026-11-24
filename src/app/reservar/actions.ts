@@ -40,9 +40,7 @@ export async function bookPatientSlotAction(payload: {
   }
 
   // 3. Validação se o horário já passou hoje
-  const [hours, mins] = time.split(':').map(Number);
-  const [y, m, d] = date.split('-').map(Number);
-  const scheduledAt = new Date(y, m - 1, d, hours, mins, 0);
+  const scheduledAt = new Date(`${date}T${time}:00-03:00`);
 
   if (scheduledAt <= now) {
     throw new Error('Este horário já passou. Por favor, escolha um horário futuro.');
@@ -78,31 +76,61 @@ export async function bookPatientSlotAction(payload: {
 
   // 7. Criar a sessão
   const db = getTenantDb(tenant.id);
-  const price = tenant.consultationPrice || 220.0;
-  const meetingUrl = modality === 'online' ? (tenant.meetingUrlDefault || 'https://meet.google.com/bem-terapia') : undefined;
+
+  // Calcula o valor conforme o tipo de sessão do paciente
+  let price = tenant.consultationPrice || 220.0;
+  const sessionType = patient.sessionTypePreference || 'regular';
+  const finalModality = patient.modalityPreference || modality || 'online';
+
+  if (sessionType === 'experimental') {
+    price = 0.0;
+  } else if (sessionType === 'descoberta') {
+    price = 150.0;
+  } else if (sessionType === 'package' && patient.packageId) {
+    const pkg = await prisma.package.findUnique({ where: { id: patient.packageId } });
+    if (pkg) {
+      price = pkg.pricePerSession;
+    }
+  }
+
+  const meetingUrl = finalModality === 'online' ? (tenant.meetingUrlDefault || 'https://meet.google.com/bem-terapia') : undefined;
 
   const app = await db.appointments.create({
     patientId: patient.id,
     scheduledAt,
-    durationMin: 50,
+    durationMin: finalModality === 'in_person' ? 60 : 50,
     status: 'scheduled',
-    modality,
+    modality: finalModality,
+    sessionType,
+    packageId: patient.packageId || undefined,
     price,
-    notes: notes || 'Agendado pelo próprio paciente via link de reserva online.',
+    notes: notes || `Agendado pelo próprio paciente via link de reserva online (${finalModality === 'in_person' ? 'Presencial' : 'Online'}).`,
     meetingUrl,
   });
 
-  // 8. Criar transação financeira pendente
-  await db.finances.create({
-    patientId: patient.id,
-    appointmentId: app.id,
-    type: 'income',
-    category: 'consultation',
-    amount: price,
-    dueDate: scheduledAt,
-    status: 'pending',
-    description: `Sessão agendada online - ${scheduledAt.toLocaleDateString('pt-BR')}`,
-  });
+  // Atualiza contagem de sessões do pacote se aplicável
+  if (sessionType === 'package') {
+    await prisma.patient.update({
+      where: { id: patient.id },
+      data: {
+        packageUsedSessions: { increment: 1 },
+      },
+    });
+  }
+
+  // 8. Criar transação financeira pendente se não for experimental gratuita
+  if (price > 0) {
+    await db.finances.create({
+      patientId: patient.id,
+      appointmentId: app.id,
+      type: 'income',
+      category: 'consultation',
+      amount: price,
+      dueDate: scheduledAt,
+      status: 'pending',
+      description: `Sessão agendada online (${sessionType}) - ${scheduledAt.toLocaleDateString('pt-BR')}`,
+    });
+  }
 
   revalidatePath('/agenda');
   revalidatePath('/cockpit');

@@ -31,9 +31,12 @@ model Tenant {
   whatsappStatus       String  @default("disconnected") // disconnected, connecting, open, close
   whatsappQrCode       String? // Base64 do QR code para leitura na tela
   whatsappAutoReminder Boolean @default(true) // Enviar lembretes automáticos
-  whatsappReminderHours Int    @default(24) // Horas de antecedência para o lembrete (padrão 24h)
-  whatsappReminderText String? // Mensagem personalizada do lembrete
+  whatsappReminderHours Int    @default(24) // Horas de antecedência para o lembrete principal
+  whatsappSend2hReminder Boolean @default(true) // Enviar segundo lembrete 2h antes com link/endereço
+  whatsappReminderText String? // Mensagem personalizada do lembrete principal
+  whatsappReminder2hText String? // Mensagem do lembrete de 2h antes
 
+  packages          Package[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -73,6 +76,11 @@ model Patient {
   birthDate    DateTime?
   status       String    @default("active") // active, inactive, archived
   notes        String?   // Observações gerais não-clínicas
+  modalityPreference String @default("online") // 'online' | 'in_person' (definido pelo terapeuta)
+  sessionTypePreference String @default("regular") // 'regular', 'experimental', 'descoberta', 'package'
+  packageId    String?   // Vinculado a um pacote ativo
+  packageTotalSessions Int? @default(0)
+  packageUsedSessions  Int? @default(0)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -92,10 +100,13 @@ model Appointment {
   durationMin Int      @default(50)
   status      String   @default("scheduled") // scheduled, confirmed, completed, cancelled, no_show
   modality    String   @default("online")    // online, in_person
+  sessionType String   @default("regular")   // regular, experimental, descoberta, package
+  packageId   String?
   meetingUrl  String?
   price       Float    @default(0.0)
   notes       String?
-  reminderSent Boolean @default(false) // Flag para não reenviar lembrete
+  reminderSent Boolean @default(false) // Flag para não reenviar lembrete 24h
+  reminder2hSent Boolean @default(false) // Flag para não reenviar lembrete 2h
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -118,6 +129,7 @@ model ClinicalRecord {
   soapEnc       String   // JSON {subjective, objective, assessment, plan} criptografado
   aiAssisted    Boolean  @default(false)
   isLocked      Boolean  @default(false) // Travamento após conclusão (exigência ético-clínica)
+  emocoesTrabalhadas String? // JSON array com as emoções trabalhadas (ex: ["Insegurança", "Raiva"])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -212,6 +224,23 @@ model BlockedSlot {
 
   @@unique([tenantId, date, time])
   @@index([tenantId, date])
+}
+
+model Package {
+  id              String   @id @default(cuid())
+  tenantId        String
+  title           String   // Ex: Pacote 5 Sessões Bioenergética
+  description     String?
+  totalSessions   Int      @default(5)
+  totalPrice      Float    @default(800.0)
+  pricePerSession Float    @default(160.0) // Rateio automático
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 

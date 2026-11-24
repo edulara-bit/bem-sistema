@@ -20,6 +20,7 @@ export async function saveClinicalRecordAction({
   soap,
   aiAssisted,
   isLocked,
+  emocoesTrabalhadas = [],
 }: {
   patientId: string;
   appointmentId?: string;
@@ -27,6 +28,7 @@ export async function saveClinicalRecordAction({
   soap: { subjective: string; objective: string; assessment: string; plan: string };
   aiAssisted: boolean;
   isLocked: boolean;
+  emocoesTrabalhadas?: string[];
 }) {
   const tenant = await getCurrentTenant();
   if (!tenant) throw new Error('Tenant não encontrado.');
@@ -45,6 +47,7 @@ export async function saveClinicalRecordAction({
     soapEnc,
     aiAssisted,
     isLocked,
+    emocoesTrabalhadas: emocoesTrabalhadas.length > 0 ? JSON.stringify(emocoesTrabalhadas) : null,
   });
 
   // Se houver agendamento vinculado, marca como 'completed'
@@ -52,8 +55,17 @@ export async function saveClinicalRecordAction({
     await db.appointments.updateStatus(appointmentId, 'completed');
   }
 
+  // Se o paciente tiver pacote ativo, incrementa o contador de sessões utilizadas
+  const patient = await db.patients.findUnique(patientId);
+  if (patient && (patient.sessionTypePreference === 'package' || patient.packageId)) {
+    await db.patients.update(patientId, {
+      packageUsedSessions: (patient.packageUsedSessions || 0) + 1,
+    });
+  }
+
   revalidatePath(`/pacientes/${patientId}/prontuario`);
   revalidatePath('/agenda');
+  revalidatePath('/pacientes');
   revalidatePath('/');
   return { success: true, recordId: record.id };
 }

@@ -23,13 +23,19 @@ import {
   Unlock,
   Settings,
   CalendarDays,
-  List
+  List,
+  CalendarClock,
+  RotateCcw,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   createAppointmentAction, 
   updateAppointmentStatusAction,
+  rescheduleAppointmentAction,
+  cancelAppointmentAction,
   toggleSlotBlockAction,
   blockFullDateAction,
   unblockFullDateAction,
@@ -105,6 +111,22 @@ export function AgendaView({
   const [selectedPatientForShare, setSelectedPatientForShare] = useState<string>(patients[0]?.id || '');
   const [copiedLink, setCopiedLink] = useState(false);
 
+  // Modais de Remarcar e Cancelar
+  const [rescheduleData, setRescheduleData] = useState<{
+    id: string;
+    patientName: string;
+    date: string;
+    time: string;
+  } | null>(null);
+  const [cancelData, setCancelData] = useState<{
+    id: string;
+    patientName: string;
+    date: string;
+    time: string;
+  } | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
+
   // Estados de submissão
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [blockingLoadingKey, setBlockingLoadingKey] = useState<string | null>(null);
@@ -174,6 +196,37 @@ export function AgendaView({
       await unblockFullDateAction(date);
     } catch (err: any) {
       alert('Erro ao desbloquear data: ' + err.message);
+    }
+  };
+
+  const handleConfirmReschedule = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!rescheduleData) return;
+    setIsProcessingAction(true);
+    const formData = new FormData(e.currentTarget);
+    const newDate = formData.get('newDate') as string;
+    const newTime = formData.get('newTime') as string;
+    try {
+      await rescheduleAppointmentAction(rescheduleData.id, newDate, newTime);
+      setRescheduleData(null);
+    } catch (err: any) {
+      alert('Erro ao remarcar sessão: ' + err.message);
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancelData) return;
+    setIsProcessingAction(true);
+    try {
+      await cancelAppointmentAction(cancelData.id, cancelReason);
+      setCancelData(null);
+      setCancelReason('');
+    } catch (err: any) {
+      alert('Erro ao cancelar sessão: ' + err.message);
+    } finally {
+      setIsProcessingAction(false);
     }
   };
 
@@ -418,7 +471,7 @@ export function AgendaView({
                           return (
                             <div
                               key={slot.time}
-                              className="p-2 rounded-xl bg-[#1F4D36] text-white text-xs shadow-xs"
+                              className="p-2.5 rounded-xl bg-[#1F4D36] text-white text-xs shadow-xs space-y-1.5"
                             >
                               <div className="flex items-center justify-between font-bold">
                                 <span>{slot.time}</span>
@@ -426,18 +479,38 @@ export function AgendaView({
                                   {slot.appointment.modality === 'online' ? 'Online' : 'Presencial'}
                                 </span>
                               </div>
-                              <div className="font-semibold truncate mt-0.5">
+                              <div className="font-semibold truncate text-[11px]">
                                 {slot.appointment.patientName}
                               </div>
-                              <div className="flex items-center justify-between mt-1 pt-1 border-t border-white/20 text-[10px]">
-                                <span className="opacity-80">Agendado</span>
-                                <Link
-                                  href="/agenda"
-                                  onClick={() => setActiveTab('list')}
-                                  className="underline hover:text-white"
+                              <div className="flex items-center justify-between pt-1 border-t border-white/20 text-[10px]">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setRescheduleData({
+                                      id: slot.appointment.id,
+                                      patientName: slot.appointment.patientName,
+                                      date: day.date,
+                                      time: slot.time,
+                                    })
+                                  }
+                                  className="underline hover:text-emerald-200"
                                 >
-                                  Ver sessão
-                                </Link>
+                                  Remarcar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setCancelData({
+                                      id: slot.appointment.id,
+                                      patientName: slot.appointment.patientName,
+                                      date: day.date,
+                                      time: slot.time,
+                                    })
+                                  }
+                                  className="text-red-200 hover:text-red-100 hover:underline"
+                                >
+                                  Cancelar
+                                </button>
                               </div>
                             </div>
                           );
@@ -546,15 +619,18 @@ export function AgendaView({
               filteredAppointments.map((app) => {
                 const dateObj = new Date(app.scheduledAt);
                 const dateFormatted = dateObj.toLocaleDateString('pt-BR', {
+                  timeZone: 'America/Sao_Paulo',
                   weekday: 'short',
                   day: '2-digit',
                   month: '2-digit',
                   year: 'numeric',
                 });
                 const timeFormatted = dateObj.toLocaleTimeString('pt-BR', {
+                  timeZone: 'America/Sao_Paulo',
                   hour: '2-digit',
                   minute: '2-digit',
                 });
+                const rawDateStr = dateObj.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 
                 return (
                   <div
@@ -613,10 +689,42 @@ export function AgendaView({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-center">
+                    <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRescheduleData({
+                            id: app.id,
+                            patientName: app.patient.name,
+                            date: rawDateStr,
+                            time: timeFormatted,
+                          })
+                        }
+                        className="px-2.5 py-1.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] hover:bg-white text-xs font-semibold flex items-center gap-1 transition-all"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-gray-500" />
+                        Remarcar
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCancelData({
+                            id: app.id,
+                            patientName: app.patient.name,
+                            date: rawDateStr,
+                            time: timeFormatted,
+                          })
+                        }
+                        className="px-2.5 py-1.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold flex items-center gap-1 transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Cancelar
+                      </button>
+
                       <Link
                         href={`/pacientes/${app.patientId}/prontuario?appointmentId=${app.id}`}
-                        className="px-3 py-1.5 rounded-xl bg-[#1F4D36] text-white text-xs font-semibold hover:bg-[#183C2A] flex items-center gap-1 transition-all"
+                        className="px-3 py-1.5 rounded-xl bg-[#1F4D36] text-white text-xs font-semibold hover:bg-[#183C2A] flex items-center gap-1 transition-all shadow-xs"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         Prontuário
@@ -1031,6 +1139,144 @@ export function AgendaView({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Remarcar Sessão */}
+      {rescheduleData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-xl border border-[#E8E5DF] space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between border-b border-[#E8E5DF] pb-3">
+              <h3 className="font-bold text-[#222924] text-base flex items-center gap-2">
+                <RotateCcw className="w-5 h-5 text-[#1F4D36]" />
+                Remarcar Sessão
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRescheduleData(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmReschedule} className="space-y-4 text-xs">
+              <div className="p-3 rounded-xl bg-[#FBF9F5] border border-[#E8E5DF]">
+                <span className="text-[#6B726B]">Paciente: </span>
+                <strong className="text-[#222924] text-sm font-bold block">{rescheduleData.patientName}</strong>
+                <span className="text-[11px] text-[#6B726B]">
+                  Horário atual: {rescheduleData.date} às {rescheduleData.time}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-[#222924] mb-1">Nova Data:</label>
+                  <input
+                    type="date"
+                    name="newDate"
+                    required
+                    defaultValue={rescheduleData.date}
+                    min={todayStr}
+                    className="w-full px-3 py-2 rounded-xl border border-[#E8E5DF] bg-white text-[#222924]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-[#222924] mb-1">Novo Horário:</label>
+                  <input
+                    type="time"
+                    name="newTime"
+                    required
+                    defaultValue={rescheduleData.time}
+                    className="w-full px-3 py-2 rounded-xl border border-[#E8E5DF] bg-white text-[#222924]"
+                  />
+                </div>
+              </div>
+
+              <p className="text-[11px] text-[#6B726B]">
+                Ao remarcar, a data será atualizada na agenda e um novo lembrete será programado.
+              </p>
+
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-[#E8E5DF]">
+                <button
+                  type="button"
+                  onClick={() => setRescheduleData(null)}
+                  className="px-3.5 py-2 rounded-xl border border-[#E8E5DF] text-[#6B726B] font-semibold hover:bg-gray-50"
+                >
+                  Voltar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessingAction}
+                  className="px-4 py-2 rounded-xl bg-[#1F4D36] text-white font-semibold hover:bg-[#183C2A] disabled:opacity-50"
+                >
+                  {isProcessingAction ? 'Remarcando...' : 'Confirmar Nova Data'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Cancelar Sessão */}
+      {cancelData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-xl border border-[#E8E5DF] space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between border-b border-[#E8E5DF] pb-3">
+              <h3 className="font-bold text-red-600 text-base flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                Cancelar Sessão
+              </h3>
+              <button
+                type="button"
+                onClick={() => setCancelData(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-900">
+                <span className="text-red-700">Deseja realmente cancelar a sessão de:</span>
+                <strong className="block text-sm font-bold text-red-950 mt-0.5">{cancelData.patientName}</strong>
+                <span className="text-[11px] text-red-700">
+                  Agendada para {cancelData.date} às {cancelData.time}
+                </span>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-[#222924] mb-1">
+                  Motivo do Cancelamento (Opcional):
+                </label>
+                <input
+                  type="text"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Ex: Paciente solicitou reagendamento, imprevisto de saúde..."
+                  className="w-full px-3 py-2 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] focus:outline-none focus:ring-2 focus:ring-red-200"
+                />
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-[#E8E5DF]">
+                <button
+                  type="button"
+                  onClick={() => setCancelData(null)}
+                  className="px-3.5 py-2 rounded-xl border border-[#E8E5DF] text-[#6B726B] font-semibold hover:bg-gray-50"
+                >
+                  Não Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmCancel}
+                  disabled={isProcessingAction}
+                  className="px-4 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-50"
+                >
+                  {isProcessingAction ? 'Cancelando...' : 'Confirmar Cancelamento'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

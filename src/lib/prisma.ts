@@ -68,6 +68,11 @@ export function getTenantDb(tenantId: string) {
           where: { id, tenantId },
           data: { status },
         }),
+      update: (id: string, data: Prisma.AppointmentUpdateInput) =>
+        client.appointment.updateMany({
+          where: { id, tenantId },
+          data,
+        }),
     },
     records: {
       findByPatient: (patientId: string) =>

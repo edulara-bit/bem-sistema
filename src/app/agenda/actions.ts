@@ -15,7 +15,7 @@ export async function createAppointmentAction(formData: FormData) {
   const price = parseFloat((formData.get('price') as string) || tenant.consultationPrice.toString());
   const notes = (formData.get('notes') as string) || '';
 
-  const scheduledAt = new Date(`${dateStr}T${timeStr}:00`);
+  const scheduledAt = new Date(`${dateStr}T${timeStr}:00-03:00`);
 
   const db = getTenantDb(tenant.id);
 
@@ -46,6 +46,39 @@ export async function createAppointmentAction(formData: FormData) {
   revalidatePath('/agenda');
   revalidatePath('/');
   revalidatePath('/financeiro');
+  return { success: true };
+}
+
+export async function rescheduleAppointmentAction(id: string, newDate: string, newTime: string) {
+  const tenant = await getCurrentTenant();
+  if (!tenant) throw new Error('Tenant não encontrado.');
+
+  const scheduledAt = new Date(`${newDate}T${newTime}:00-03:00`);
+
+  const db = getTenantDb(tenant.id);
+  await db.appointments.update(id, {
+    scheduledAt,
+    reminderSent: false,
+    reminder2hSent: false,
+  });
+
+  revalidatePath('/agenda');
+  revalidatePath('/');
+  return { success: true };
+}
+
+export async function cancelAppointmentAction(id: string, reason?: string) {
+  const tenant = await getCurrentTenant();
+  if (!tenant) throw new Error('Tenant não encontrado.');
+
+  const db = getTenantDb(tenant.id);
+  await db.appointments.update(id, {
+    status: 'cancelled',
+    notes: reason ? `Cancelado: ${reason}` : 'Cancelado pelo terapeuta',
+  });
+
+  revalidatePath('/agenda');
+  revalidatePath('/');
   return { success: true };
 }
 

@@ -37,6 +37,34 @@ export const DAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'S
 export const DAY_NAMES_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 /**
+ * Converte qualquer Date para YYYY-MM-DD e HH:mm estritamente no fuso horário de São Paulo (America/Sao_Paulo).
+ */
+export function formatAppointmentDateTime(dateInput: Date | string) {
+  const d = new Date(dateInput);
+  const formatter = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(d);
+  const p: Record<string, string> = {};
+  parts.forEach((pt) => {
+    p[pt.type] = pt.value;
+  });
+
+  const dateStr = `${p.year}-${p.month}-${p.day}`; // YYYY-MM-DD
+  const timeStr = `${p.hour}:${p.minute}`; // HH:mm
+  const displayDate = `${p.day}/${p.month}/${p.year}`;
+
+  return { dateStr, timeStr, displayDate };
+}
+
+/**
  * Obtém os horários configurados para os dias da semana de um terapeuta.
  */
 export async function getTenantWeeklyRules(tenantId: string) {
@@ -109,10 +137,8 @@ export async function getPatientBookingAvailability(tenantId: string): Promise<D
 
   const bookedSlotsMap = new Map<string, any>();
   for (const app of appointments) {
-    const d = new Date(app.scheduledAt);
-    const datePart = d.toISOString().split('T')[0];
-    const timePart = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    bookedSlotsMap.set(`${datePart}_${timePart}`, app);
+    const { dateStr, timeStr } = formatAppointmentDateTime(app.scheduledAt);
+    bookedSlotsMap.set(`${dateStr}_${timeStr}`, app);
   }
 
   const days: DaySchedule[] = [];
@@ -206,10 +232,8 @@ export async function getAdminWeeklySchedule(tenantId: string, weekStartDateStr:
 
   const bookedSlotsMap = new Map<string, any>();
   for (const app of appointments) {
-    const appDate = new Date(app.scheduledAt);
-    const datePart = appDate.toISOString().split('T')[0];
-    const timePart = appDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    bookedSlotsMap.set(`${datePart}_${timePart}`, app);
+    const { dateStr, timeStr } = formatAppointmentDateTime(app.scheduledAt);
+    bookedSlotsMap.set(`${dateStr}_${timeStr}`, app);
   }
 
   // Descobrir todos os horários únicos usados na semana

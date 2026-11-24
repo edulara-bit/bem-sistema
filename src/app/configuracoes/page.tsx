@@ -1,4 +1,5 @@
 import { getCurrentTenant } from '@/lib/current-tenant';
+import { prisma } from '@/lib/prisma';
 import { ConfiguracoesView } from './ConfiguracoesView';
 
 export const metadata = {
@@ -12,6 +13,11 @@ export default async function ConfiguracoesPage() {
   if (!tenant) return <div>Tenant não encontrado.</div>;
 
   const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/agendar?slug=${tenant.slug}`;
+
+  const packages = await prisma.package.findMany({
+    where: { tenantId: tenant.id },
+    orderBy: { createdAt: 'desc' },
+  });
 
   return (
     <ConfiguracoesView
@@ -31,7 +37,16 @@ export default async function ConfiguracoesPage() {
         professionalReg: tenant.professionalReg,
         meetingUrlDefault: tenant.meetingUrlDefault,
         address: tenant.address,
+        whatsappInstanceName: tenant.whatsappInstanceName,
+        whatsappStatus: tenant.whatsappStatus,
+        whatsappQrCode: tenant.whatsappQrCode,
+        whatsappAutoReminder: tenant.whatsappAutoReminder,
+        whatsappReminderHours: tenant.whatsappReminderHours,
+        whatsappSend2hReminder: tenant.whatsappSend2hReminder,
+        whatsappReminderText: tenant.whatsappReminderText,
+        whatsappReminder2hText: tenant.whatsappReminder2hText,
       }}
+      packages={packages}
       publicUrl={publicUrl}
     />
   );

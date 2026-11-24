@@ -4,7 +4,7 @@ import { sendWhatsAppMessage } from '@/lib/whatsapp';
 import { decryptText } from '@/lib/crypto';
 
 /**
- * Endpoint de disparo automático de lembretes (chamado pelo Cron a cada 1 hora ou pelo agendador).
+ * Endpoint de disparo automático de lembretes (chamado pelo Cron a cada 15-30 minutos).
  * GET /api/cron/reminders
  */
 export async function GET(request: Request) {
@@ -22,10 +22,9 @@ export async function GET(request: Request) {
     }
 
     const now = new Date();
-    // Busca tenants com WhatsApp configurado e lembrete ativo
+    // Busca tenants com WhatsApp conectado
     const tenants = await prisma.tenant.findMany({
       where: {
-        whatsappAutoReminder: true,
         whatsappStatus: 'open',
         whatsappInstanceName: { not: null },
       },
@@ -37,66 +36,115 @@ export async function GET(request: Request) {
     for (const tenant of tenants) {
       if (!tenant.whatsappInstanceName) continue;
 
-      // Define janela de tempo com base na antecedência configurada (ex: 24h ou 2h)
-      const hoursAhead = tenant.whatsappReminderHours || 24;
-      const targetStart = new Date(now.getTime() + (hoursAhead - 1) * 60 * 60 * 1000);
-      const targetEnd = new Date(now.getTime() + (hoursAhead + 2) * 60 * 60 * 1000);
+      // ==========================================
+      // 1. LEMBRETE DE 24 HORAS ANTES
+      // ==========================================
+      if (tenant.whatsappAutoReminder) {
+        const start24h = new Date(now.getTime() + 22 * 60 * 60 * 1000); // 22h no futuro
+        const end24h = new Date(now.getTime() + 26 * 60 * 60 * 1000);   // 26h no futuro
 
-      // Busca sessões agendadas nessa janela que ainda não receberam lembrete
-      const appointments = await prisma.appointment.findMany({
-        where: {
-          tenantId: tenant.id,
-          status: 'scheduled',
-          reminderSent: false,
-          scheduledAt: {
-            gte: targetStart,
-            lte: targetEnd,
+        const appointments24h = await prisma.appointment.findMany({
+          where: {
+            tenantId: tenant.id,
+            status: 'scheduled',
+            reminderSent: false,
+            scheduledAt: { gte: start24h, lte: end24h },
           },
-        },
-        include: {
-          patient: true,
-        },
-      });
-
-      for (const app of appointments) {
-        const phone = decryptText(app.patient.phoneEnc);
-        if (!phone) continue;
-
-        const dateStr = new Date(app.scheduledAt).toLocaleDateString('pt-BR');
-        const timeStr = new Date(app.scheduledAt).toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit',
+          include: { patient: true },
         });
-        const modalityStr = app.modality === 'online' ? 'Online (Google Meet)' : 'Presencial no Consultório';
 
-        // Monta a mensagem personalizada
-        let msg =
-          tenant.whatsappReminderText ||
-          'Olá {paciente}! Lembramos da sua sessão de Bioenergética com {terapeuta} marcada para {data} às {horario} ({modalidade}). Caso precise reagendar, avise por aqui com antecedência. Até breve!';
+        for (const app of appointments24h) {
+          const phone = decryptText(app.patient.phoneEnc);
+          if (!phone) continue;
 
-        msg = msg
-          .replace('{paciente}', app.patient.name.split(' ')[0])
-          .replace('{terapeuta}', tenant.name)
-          .replace('{data}', dateStr)
-          .replace('{horario}', timeStr)
-          .replace('{modalidade}', modalityStr);
-
-        // Se for online e tiver link padrão, anexa o link
-        if (app.modality === 'online' && tenant.meetingUrlDefault) {
-          msg += `\n\nLink da sala: ${tenant.meetingUrlDefault}`;
-        }
-
-        const sendRes = await sendWhatsAppMessage(tenant.whatsappInstanceName, phone, msg);
-
-        if (sendRes.success) {
-          await prisma.appointment.update({
-            where: { id: app.id },
-            data: { reminderSent: true },
+          const dateStr = new Date(app.scheduledAt).toLocaleDateString('pt-BR', {
+            timeZone: 'America/Sao_Paulo',
           });
-          totalSent++;
-          results.push({ patient: app.patient.name, time: timeStr, status: 'sent' });
-        } else {
-          results.push({ patient: app.patient.name, error: sendRes.error, status: 'failed' });
+          const timeStr = new Date(app.scheduledAt).toLocaleTimeString('pt-BR', {
+            timeZone: 'America/Sao_Paulo',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+          const modalityStr = app.modality === 'online' ? 'Online' : 'Presencial';
+
+          let msg =
+            tenant.whatsappReminderText ||
+            'Olá, {{paciente}}! Passando para confirmar nossa sessão de {{tipo}} amanhã, dia {{data}} às {{hora}}. Aguardo você!';
+
+          msg = msg
+            .replace(/\{\{paciente\}\}|\{paciente\}/g, app.patient.name.split(' ')[0])
+            .replace(/\{\{terapeuta\}\}|\{terapeuta\}/g, tenant.name)
+            .replace(/\{\{data\}\}|\{data\}/g, dateStr)
+            .replace(/\{\{hora\}\}|\{\{horario\}\}|\{horario\}/g, timeStr)
+            .replace(/\{\{tipo\}\}|\{\{modalidade\}\}|\{modalidade\}/g, modalityStr);
+
+          const sendRes = await sendWhatsAppMessage(tenant.whatsappInstanceName, phone, msg);
+          if (sendRes.success) {
+            await prisma.appointment.update({
+              where: { id: app.id },
+              data: { reminderSent: true },
+            });
+            totalSent++;
+            results.push({ patient: app.patient.name, type: '24h', time: timeStr, status: 'sent' });
+          } else {
+            results.push({ patient: app.patient.name, type: '24h', error: sendRes.error, status: 'failed' });
+          }
+        }
+      }
+
+      // ==========================================
+      // 2. LEMBRETE DE 2 HORAS ANTES
+      // ==========================================
+      if (tenant.whatsappSend2hReminder) {
+        const start2h = new Date(now.getTime() + 1 * 60 * 60 * 1000);   // 1h no futuro
+        const end2h = new Date(now.getTime() + 2.5 * 60 * 60 * 1000);   // 2h30 no futuro
+
+        const appointments2h = await prisma.appointment.findMany({
+          where: {
+            tenantId: tenant.id,
+            status: { in: ['scheduled', 'confirmed'] },
+            reminder2hSent: false,
+            scheduledAt: { gte: start2h, lte: end2h },
+          },
+          include: { patient: true },
+        });
+
+        for (const app of appointments2h) {
+          const phone = decryptText(app.patient.phoneEnc);
+          if (!phone) continue;
+
+          const timeStr = new Date(app.scheduledAt).toLocaleTimeString('pt-BR', {
+            timeZone: 'America/Sao_Paulo',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+
+          const localInstruction =
+            app.modality === 'online'
+              ? `Acesse a nossa sala online pelo link: ${tenant.meetingUrlDefault || 'https://meet.google.com/sua-sala'}`
+              : `Nosso consultório fica no endereço: ${tenant.address || 'Consultório do Terapeuta'}`;
+
+          let msg =
+            tenant.whatsappReminder2hText ||
+            'Olá, {{paciente}}! Nossa sessão começa em 2 horas (às {{hora}}). {{instrucoes_local}} Nos vemos em breve!';
+
+          msg = msg
+            .replace(/\{\{paciente\}\}|\{paciente\}/g, app.patient.name.split(' ')[0])
+            .replace(/\{\{terapeuta\}\}|\{terapeuta\}/g, tenant.name)
+            .replace(/\{\{hora\}\}|\{\{horario\}\}|\{horario\}/g, timeStr)
+            .replace(/\{\{instrucoes_local\}\}/g, localInstruction);
+
+          const sendRes = await sendWhatsAppMessage(tenant.whatsappInstanceName, phone, msg);
+          if (sendRes.success) {
+            await prisma.appointment.update({
+              where: { id: app.id },
+              data: { reminder2hSent: true },
+            });
+            totalSent++;
+            results.push({ patient: app.patient.name, type: '2h', time: timeStr, status: 'sent' });
+          } else {
+            results.push({ patient: app.patient.name, type: '2h', error: sendRes.error, status: 'failed' });
+          }
         }
       }
     }

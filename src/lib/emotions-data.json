@@ -1,0 +1,842 @@
+[
+  {
+    "id": "4",
+    "title": "Insegurança",
+    "letra": "A1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "5",
+    "title": "Segurança",
+    "letra": "A1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "6",
+    "title": "Timidez",
+    "letra": "A2",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "7",
+    "title": "Naturalidade",
+    "letra": "A2",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "8",
+    "title": "Acomodação",
+    "letra": "A3",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "9",
+    "title": "Motivação",
+    "letra": "A3",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "10",
+    "title": "Desânimo",
+    "letra": "A4",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "11",
+    "title": "Entusiasmo",
+    "letra": "A4",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "12",
+    "title": "Derrota",
+    "letra": "A5",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "13",
+    "title": "Vitória",
+    "letra": "A5",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "14",
+    "title": "Instabilidade",
+    "letra": "A6",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "15",
+    "title": "Estabilidade",
+    "letra": "A6",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "16",
+    "title": "Vítima",
+    "letra": "A7",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "17",
+    "title": "Responsabilidade",
+    "letra": "A7",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "18",
+    "title": "Apreensão",
+    "letra": "A8",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "19",
+    "title": "Coragem",
+    "letra": "A8",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "20",
+    "title": "Escassez",
+    "letra": "A9",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "21",
+    "title": "Abundância",
+    "letra": "A9",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "22",
+    "title": "Imperfeição",
+    "letra": "A1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "23",
+    "title": "Perfeição",
+    "letra": "A1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "24",
+    "title": "Preocupação",
+    "letra": "B1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "25",
+    "title": "Esperança",
+    "letra": "B1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "26",
+    "title": "Impaciência",
+    "letra": "B2",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "27",
+    "title": "Paciência",
+    "letra": "B2",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "28",
+    "title": "Infelicidade",
+    "letra": "B3",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "29",
+    "title": "Gratidão",
+    "letra": "B3",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "30",
+    "title": "Irritação",
+    "letra": "B4",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "31",
+    "title": "Serenidade",
+    "letra": "B4",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "32",
+    "title": "Imoralidade",
+    "letra": "B5",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "33",
+    "title": "Moralidade",
+    "letra": "B5",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "34",
+    "title": "Ganância",
+    "letra": "B6",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "35",
+    "title": "Generosidade",
+    "letra": "B6",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "36",
+    "title": "Obsessão",
+    "letra": "B7",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "37",
+    "title": "Autocontrole",
+    "letra": "B7",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "38",
+    "title": "Exigência",
+    "letra": "B8",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "39",
+    "title": "Compreensão",
+    "letra": "B8",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "40",
+    "title": "Fome",
+    "letra": "B9",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "41",
+    "title": "Saciedade",
+    "letra": "B9",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "42",
+    "title": "Insensibilidade",
+    "letra": "B1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "43",
+    "title": "Sensibilidade",
+    "letra": "B1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "44",
+    "title": "Raiva",
+    "letra": "C1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "45",
+    "title": "Calma",
+    "letra": "C1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "46",
+    "title": "Orgulho",
+    "letra": "C2",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "47",
+    "title": "Humildade",
+    "letra": "C2",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "48",
+    "title": "Egoísmo",
+    "letra": "C3",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "49",
+    "title": "Altruísmo",
+    "letra": "C3",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "50",
+    "title": "Vergonha",
+    "letra": "C4",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "51",
+    "title": "Dignidade",
+    "letra": "C4",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "52",
+    "title": "Ofensa",
+    "letra": "C5",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "53",
+    "title": "Honra",
+    "letra": "C5",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "54",
+    "title": "Revolta",
+    "letra": "C6",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "55",
+    "title": "Satisfação",
+    "letra": "C6",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "56",
+    "title": "Preso",
+    "letra": "C7",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "57",
+    "title": "Liberdade",
+    "letra": "C7",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "58",
+    "title": "Desonestidade",
+    "letra": "C8",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "59",
+    "title": "Honestidade",
+    "letra": "C8",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "60",
+    "title": "Incapacidade",
+    "letra": "C9",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "61",
+    "title": "Capacidade",
+    "letra": "C9",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "62",
+    "title": "Inferioridade",
+    "letra": "C1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "63",
+    "title": "Compostura",
+    "letra": "C1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "64",
+    "title": "Manipulação",
+    "letra": "D1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "65",
+    "title": "Permissão",
+    "letra": "D1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "66",
+    "title": "Remorso",
+    "letra": "D2",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "67",
+    "title": "Perdão",
+    "letra": "D2",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "68",
+    "title": "Arrependimento",
+    "letra": "D3",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "69",
+    "title": "Gratificação",
+    "letra": "D3",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "70",
+    "title": "Rejeição",
+    "letra": "D4",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "71",
+    "title": "Aceitação",
+    "letra": "D4",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "72",
+    "title": "Abandono",
+    "letra": "D5",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "73",
+    "title": "Convicção",
+    "letra": "D5",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "74",
+    "title": "Traição",
+    "letra": "D6",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "75",
+    "title": "Fidelidade",
+    "letra": "D6",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "76",
+    "title": "Desilusão",
+    "letra": "D7",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "77",
+    "title": "Claridade",
+    "letra": "D7",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "78",
+    "title": "Ciúme",
+    "letra": "D8",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "79",
+    "title": "Realização",
+    "letra": "D8",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "80",
+    "title": "Mal-Amado",
+    "letra": "D9",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "81",
+    "title": "Querido",
+    "letra": "D9",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "82",
+    "title": "Solidão",
+    "letra": "D1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "83",
+    "title": "Presença",
+    "letra": "D1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "84",
+    "title": "Enganação",
+    "letra": "E1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "85",
+    "title": "Lealdade",
+    "letra": "E1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "86",
+    "title": "Frustração",
+    "letra": "E2",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "87",
+    "title": "Compaixão",
+    "letra": "E2",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "88",
+    "title": "Alienação",
+    "letra": "E3",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "89",
+    "title": "Devoção",
+    "letra": "E3",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "90",
+    "title": "Destruição",
+    "letra": "E4",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "91",
+    "title": "Inspiração",
+    "letra": "E4",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "92",
+    "title": "Ferido",
+    "letra": "E5",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "93",
+    "title": "Cura",
+    "letra": "E5",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "94",
+    "title": "Tristeza",
+    "letra": "E6",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "95",
+    "title": "Alegria",
+    "letra": "E6",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "96",
+    "title": "Autopiedade",
+    "letra": "E7",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "97",
+    "title": "Autoestima",
+    "letra": "E7",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "98",
+    "title": "Contradição",
+    "letra": "E8",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "99",
+    "title": "Consistência",
+    "letra": "E8",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "100",
+    "title": "Mágoa",
+    "letra": "E9",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "101",
+    "title": "Inabalável",
+    "letra": "E9",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "102",
+    "title": "Indecisão",
+    "letra": "E1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "103",
+    "title": "Confiança",
+    "letra": "E1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "104",
+    "title": "Dor",
+    "letra": "F1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "105",
+    "title": "Bem",
+    "letra": "F1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "106",
+    "title": "Vingança",
+    "letra": "F2",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "107",
+    "title": "Amizade",
+    "letra": "F2",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "108",
+    "title": "Inveja",
+    "letra": "F3",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "109",
+    "title": "Admiração",
+    "letra": "F3",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "110",
+    "title": "Abuso",
+    "letra": "F4",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "111",
+    "title": "Paixão",
+    "letra": "F4",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "112",
+    "title": "Desespero",
+    "letra": "F5",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "113",
+    "title": "Tranquilidade",
+    "letra": "F5",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "114",
+    "title": "Luto",
+    "letra": "F6",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "115",
+    "title": "Graça",
+    "letra": "F6",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "116",
+    "title": "Frigidez",
+    "letra": "F7",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "117",
+    "title": "Prazer",
+    "letra": "F7",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "118",
+    "title": "Culpa",
+    "letra": "F8",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "119",
+    "title": "Redenção",
+    "letra": "F8",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "120",
+    "title": "Amargura",
+    "letra": "F9",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "121",
+    "title": "Doçura",
+    "letra": "F9",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "122",
+    "title": "Vazio",
+    "letra": "F1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "123",
+    "title": "Nascimento",
+    "letra": "F1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "124",
+    "title": "Apatia",
+    "letra": "G1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "125",
+    "title": "Paz",
+    "letra": "G1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "126",
+    "title": "Depressão",
+    "letra": "G2",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "127",
+    "title": "Felicidade",
+    "letra": "G2",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "128",
+    "title": "Humilhação",
+    "letra": "G3",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "129",
+    "title": "Exaltação",
+    "letra": "G3",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "130",
+    "title": "Ódio",
+    "letra": "G4",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "131",
+    "title": "Amor",
+    "letra": "G4",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "132",
+    "title": "Medo",
+    "letra": "G5",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "133",
+    "title": "Sabedoria",
+    "letra": "G5",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "134",
+    "title": "Paranoia",
+    "letra": "G6",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "135",
+    "title": "Serendipidade",
+    "letra": "G6",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "136",
+    "title": "Ansiedade",
+    "letra": "G7",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "137",
+    "title": "Fé",
+    "letra": "G7",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "138",
+    "title": "Condenação",
+    "letra": "G8",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "139",
+    "title": "Benevolência",
+    "letra": "G8",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "140",
+    "title": "Fraqueza",
+    "letra": "G9",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "141",
+    "title": "Poder",
+    "letra": "G9",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "142",
+    "title": "Desprezo",
+    "letra": "G1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "143",
+    "title": "Carinho",
+    "letra": "G1",
+    "tipo": "Positiva"
+  }
+]

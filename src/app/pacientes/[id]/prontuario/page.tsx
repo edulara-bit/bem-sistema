@@ -3,6 +3,7 @@ import { getCurrentTenant } from '@/lib/current-tenant';
 import { decryptText } from '@/lib/crypto';
 import { ProntuarioView } from './ProntuarioView';
 import { notFound } from 'next/navigation';
+import emotionsCatalog from '@/lib/emotions-data.json';
 
 export default async function ProntuarioPage({
   params,
@@ -26,7 +27,7 @@ export default async function ProntuarioPage({
   }
 
   // Descriptografa histórico para renderização
-  const history = patient.records.map((r) => {
+  const history = patient.records.map((r: any) => {
     let soap = { subjective: '', objective: '', assessment: '', plan: '' };
     try {
       const decryptedSoapStr = decryptText(r.soapEnc);
@@ -35,9 +36,19 @@ export default async function ProntuarioPage({
       soap = { subjective: 'Erro na leitura', objective: '', assessment: '', plan: '' };
     }
 
+    let emocoes: string[] = [];
+    if (r.emocoesTrabalhadas) {
+      try {
+        emocoes = JSON.parse(r.emocoesTrabalhadas);
+      } catch {
+        emocoes = [];
+      }
+    }
+
     return {
       id: r.id,
       sessionDate: new Date(r.sessionDate).toLocaleDateString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -45,6 +56,7 @@ export default async function ProntuarioPage({
         minute: '2-digit',
       }),
       soap,
+      emocoesTrabalhadas: emocoes,
       aiAssisted: r.aiAssisted,
       isLocked: r.isLocked,
     };
@@ -55,6 +67,7 @@ export default async function ProntuarioPage({
       patient={{ id: patient.id, name: patient.name, notes: patient.notes }}
       appointmentId={appointmentId}
       history={history}
+      emotionsCatalog={emotionsCatalog}
     />
   );
 }

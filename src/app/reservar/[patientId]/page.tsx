@@ -34,6 +34,8 @@ export default async function ReservarPatientPage({
       patient={{
         id: patient.id,
         name: patient.name,
+        modalityPreference: patient.modalityPreference || 'online',
+        sessionTypePreference: patient.sessionTypePreference || 'regular',
       }}
       therapist={{
         id: tenant.id,

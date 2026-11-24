@@ -23,6 +23,8 @@ interface ReservarViewProps {
   patient: {
     id: string;
     name: string;
+    modalityPreference?: string;
+    sessionTypePreference?: string;
   };
   therapist: {
     id: string;
@@ -42,7 +44,7 @@ export function ReservarView({ patient, therapist, availableDays }: ReservarView
 
   const [selectedDate, setSelectedDate] = useState<string>(firstAvailableDay?.date || '');
   const [selectedTime, setSelectedTime] = useState<string>('');
-  const [modality, setModality] = useState<'online' | 'in_person'>('online');
+  const [modality] = useState<'online' | 'in_person'>((patient.modalityPreference as any) || 'online');
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
@@ -312,38 +314,27 @@ export function ReservarView({ patient, therapist, availableDays }: ReservarView
               </div>
             )}
 
-            {/* Modalidade */}
-            <div className="pt-2">
-              <label className="block text-xs font-bold text-[#222924] mb-2">
-                Como prefere ser atendido?
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setModality('online')}
-                  className={`p-3 rounded-xl border text-left flex items-center gap-2 transition-all ${
-                    modality === 'online'
-                      ? 'border-[#1F4D36] bg-[#EBF3ED] text-[#1F4D36] font-semibold'
-                      : 'border-[#E8E5DF] text-[#6B726B] hover:bg-gray-50'
-                  }`}
-                >
-                  <Video className="w-4 h-4" />
-                  <span className="text-xs">Online (Meet)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setModality('in_person')}
-                  className={`p-3 rounded-xl border text-left flex items-center gap-2 transition-all ${
-                    modality === 'in_person'
-                      ? 'border-[#1F4D36] bg-[#EBF3ED] text-[#1F4D36] font-semibold'
-                      : 'border-[#E8E5DF] text-[#6B726B] hover:bg-gray-50'
-                  }`}
-                >
-                  <MapPin className="w-4 h-4" />
-                  <span className="text-xs">Presencial</span>
-                </button>
+            {/* Modalidade (Definida pelo Consultório) */}
+            <div className="pt-2 p-3 rounded-2xl bg-[#FBF9F5] border border-[#E8E5DF] flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-semibold text-[#6B726B] block">Formato de Atendimento:</span>
+                <span className="text-xs font-bold text-[#1F4D36] flex items-center gap-1.5 mt-0.5">
+                  {modality === 'in_person' ? (
+                    <>
+                      <MapPin className="w-4 h-4 text-[#D97736]" />
+                      Atendimento Presencial no Consultório
+                    </>
+                  ) : (
+                    <>
+                      <Video className="w-4 h-4 text-[#1F4D36]" />
+                      Atendimento Online (Google Meet)
+                    </>
+                  )}
+                </span>
               </div>
+              <span className="text-[10px] text-gray-500 bg-white px-2 py-1 rounded-lg border border-[#E8E5DF]">
+                {modality === 'in_person' ? 'Duração: 60 min' : 'Duração: 50 min'}
+              </span>
             </div>
 
             {/* Observações Opcionais */}

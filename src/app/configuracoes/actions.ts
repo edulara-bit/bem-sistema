@@ -64,6 +64,8 @@ export async function updateTenantSettingsAction(formData: FormData) {
   const whatsappAutoReminder = formData.get('whatsappAutoReminder') === 'on';
   const whatsappReminderHours = parseInt((formData.get('whatsappReminderHours') as string) || '24', 10);
   const whatsappReminderText = (formData.get('whatsappReminderText') as string) || '';
+  const whatsappSend2hReminder = formData.get('whatsappSend2hReminder') === 'on';
+  const whatsappReminder2hText = (formData.get('whatsappReminder2hText') as string) || '';
 
   await prisma.tenant.update({
     where: { id: tenant.id },
@@ -82,7 +84,9 @@ export async function updateTenantSettingsAction(formData: FormData) {
       instagram,
       whatsappAutoReminder,
       whatsappReminderHours,
+      whatsappSend2hReminder,
       whatsappReminderText,
+      whatsappReminder2hText,
     },
   });
 
@@ -90,6 +94,49 @@ export async function updateTenantSettingsAction(formData: FormData) {
   revalidatePath('/agendar');
   revalidatePath('/financeiro');
   revalidatePath('/');
+  return { success: true };
+}
+
+export async function createPackageAction(formData: FormData) {
+  const current = await getCurrentTenant();
+  if (!current) throw new Error('Consultório não identificado.');
+
+  const title = (formData.get('title') as string) || 'Pacote de Sessões';
+  const description = (formData.get('description') as string) || '';
+  const totalSessions = parseInt((formData.get('totalSessions') as string) || '5', 10);
+  const totalPrice = parseFloat((formData.get('totalPrice') as string) || '800');
+  const pricePerSession = totalSessions > 0 ? Number((totalPrice / totalSessions).toFixed(2)) : totalPrice;
+
+  await prisma.package.create({
+    data: {
+      tenantId: current.id,
+      title,
+      description,
+      totalSessions,
+      totalPrice,
+      pricePerSession,
+      active: true,
+    },
+  });
+
+  revalidatePath('/configuracoes');
+  revalidatePath('/pacientes');
+  return { success: true };
+}
+
+export async function deletePackageAction(packageId: string) {
+  const current = await getCurrentTenant();
+  if (!current) throw new Error('Consultório não identificado.');
+
+  await prisma.package.deleteMany({
+    where: {
+      id: packageId,
+      tenantId: current.id,
+    },
+  });
+
+  revalidatePath('/configuracoes');
+  revalidatePath('/pacientes');
   return { success: true };
 }
 
