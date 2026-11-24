@@ -1,0 +1,526 @@
+{
+  "protocols": [
+    {
+      "id": 1,
+      "title": "Timeline",
+      "parentId": 0
+    },
+    {
+      "id": 2,
+      "title": "Medo",
+      "parentId": 0
+    },
+    {
+      "id": 3,
+      "title": "Relacionamento",
+      "parentId": 0
+    },
+    {
+      "id": 4,
+      "title": "Passado",
+      "parentId": 1
+    },
+    {
+      "id": 5,
+      "title": "Presente",
+      "parentId": 1
+    },
+    {
+      "id": 6,
+      "title": "Futuro",
+      "parentId": 1
+    },
+    {
+      "id": 7,
+      "title": "Pré-concepção",
+      "parentId": 4
+    },
+    {
+      "id": 8,
+      "title": "Gestação",
+      "parentId": 4
+    },
+    {
+      "id": 9,
+      "title": "Data",
+      "parentId": 4
+    },
+    {
+      "id": 10,
+      "title": "Lista",
+      "parentId": 4
+    },
+    {
+      "id": 11,
+      "title": "Físico",
+      "parentId": 5
+    },
+    {
+      "id": 12,
+      "title": "Emocional",
+      "parentId": 5
+    },
+    {
+      "id": 13,
+      "title": "Mental",
+      "parentId": 5
+    },
+    {
+      "id": 14,
+      "title": "Pai",
+      "parentId": 7
+    },
+    {
+      "id": 15,
+      "title": "Mãe",
+      "parentId": 7
+    },
+    {
+      "id": 18,
+      "title": "Mês",
+      "parentId": 8
+    },
+    {
+      "id": 19,
+      "title": "Parto",
+      "parentId": 8
+    },
+    {
+      "id": 20,
+      "title": "Experiência",
+      "parentId": 10
+    },
+    {
+      "id": 21,
+      "title": "Pessoas",
+      "parentId": 10
+    },
+    {
+      "id": 22,
+      "title": "Body in Sync",
+      "parentId": 11
+    },
+    {
+      "id": 23,
+      "title": "N.S. Balance",
+      "parentId": 11
+    },
+    {
+      "id": 24,
+      "title": "Unwind",
+      "parentId": 11
+    },
+    {
+      "id": 25,
+      "title": "Master II",
+      "parentId": 11
+    },
+    {
+      "id": 26,
+      "title": "Olho Esquerdo Fechado",
+      "parentId": 12
+    },
+    {
+      "id": 27,
+      "title": "Olho Direito Fechado",
+      "parentId": 12
+    },
+    {
+      "id": 28,
+      "title": "Reclamação Física",
+      "parentId": 13
+    },
+    {
+      "id": 29,
+      "title": "Meta",
+      "parentId": 13
+    },
+    {
+      "id": 30,
+      "title": "Pensamento",
+      "parentId": 13
+    },
+    {
+      "id": 31,
+      "title": "Diagnóstico",
+      "parentId": 28
+    },
+    {
+      "id": 32,
+      "title": "Dores",
+      "parentId": 28
+    },
+    {
+      "id": 33,
+      "title": "Sintoma",
+      "parentId": 28
+    },
+    {
+      "id": 34,
+      "title": "Recorrente",
+      "parentId": 30
+    },
+    {
+      "id": 35,
+      "title": "Condenação",
+      "parentId": 30
+    },
+    {
+      "id": 36,
+      "title": "Projeção",
+      "parentId": 30
+    },
+    {
+      "id": 37,
+      "title": "Negação",
+      "parentId": 30
+    },
+    {
+      "id": 38,
+      "title": "Dúvida",
+      "parentId": 30
+    },
+    {
+      "id": 39,
+      "title": "Desejo",
+      "parentId": 30
+    },
+    {
+      "id": 40,
+      "title": "Família",
+      "parentId": 3
+    },
+    {
+      "id": 41,
+      "title": "Dinheiro",
+      "parentId": 3
+    },
+    {
+      "id": 42,
+      "title": "Consigo",
+      "parentId": 3
+    },
+    {
+      "id": 43,
+      "title": "Amoroso",
+      "parentId": 3
+    },
+    {
+      "id": 44,
+      "title": "Trabalho",
+      "parentId": 3
+    },
+    {
+      "id": 45,
+      "title": "Tempo",
+      "parentId": 3
+    },
+    {
+      "id": 46,
+      "title": "Deus",
+      "parentId": 3
+    },
+    {
+      "id": 47,
+      "title": "Financeiro",
+      "parentId": 2
+    },
+    {
+      "id": 48,
+      "title": "Crítica",
+      "parentId": 2
+    },
+    {
+      "id": 49,
+      "title": "Saúde",
+      "parentId": 2
+    },
+    {
+      "id": 50,
+      "title": "Abandono",
+      "parentId": 2
+    },
+    {
+      "id": 51,
+      "title": "Perda Liberdade",
+      "parentId": 2
+    },
+    {
+      "id": 52,
+      "title": "Envelhecer",
+      "parentId": 2
+    },
+    {
+      "id": 53,
+      "title": "Sucesso",
+      "parentId": 2
+    },
+    {
+      "id": 54,
+      "title": "Fracasso",
+      "parentId": 2
+    },
+    {
+      "id": 55,
+      "title": "Responsabilidade",
+      "parentId": 2
+    },
+    {
+      "id": 56,
+      "title": "Amar",
+      "parentId": 2
+    },
+    {
+      "id": 57,
+      "title": "Se entregar",
+      "parentId": 2
+    },
+    {
+      "id": 58,
+      "title": "Morrer",
+      "parentId": 2
+    }
+  ],
+  "categories": [
+    {
+      "id": 2,
+      "name": "Medos",
+      "items": [
+        {
+          "id": 47,
+          "title": "Financeiro"
+        },
+        {
+          "id": 48,
+          "title": "Crítica"
+        },
+        {
+          "id": 49,
+          "title": "Saúde"
+        },
+        {
+          "id": 50,
+          "title": "Abandono"
+        },
+        {
+          "id": 51,
+          "title": "Perda Liberdade"
+        },
+        {
+          "id": 52,
+          "title": "Envelhecer"
+        },
+        {
+          "id": 53,
+          "title": "Sucesso"
+        },
+        {
+          "id": 54,
+          "title": "Fracasso"
+        },
+        {
+          "id": 55,
+          "title": "Responsabilidade"
+        },
+        {
+          "id": 56,
+          "title": "Amar"
+        },
+        {
+          "id": 57,
+          "title": "Se entregar"
+        },
+        {
+          "id": 58,
+          "title": "Morrer"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Relacionamento",
+      "items": [
+        {
+          "id": 40,
+          "title": "Família"
+        },
+        {
+          "id": 41,
+          "title": "Dinheiro"
+        },
+        {
+          "id": 42,
+          "title": "Consigo"
+        },
+        {
+          "id": 43,
+          "title": "Amoroso"
+        },
+        {
+          "id": 44,
+          "title": "Trabalho"
+        },
+        {
+          "id": 45,
+          "title": "Tempo"
+        },
+        {
+          "id": 46,
+          "title": "Deus"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "Timeline",
+      "subcategories": [
+        {
+          "id": 4,
+          "name": "Passado",
+          "items": [
+            {
+              "id": 7,
+              "title": "Pré-concepção"
+            },
+            {
+              "id": 8,
+              "title": "Gestação"
+            },
+            {
+              "id": 9,
+              "title": "Data"
+            },
+            {
+              "id": 10,
+              "title": "Lista"
+            },
+            {
+              "id": 14,
+              "title": "Pai"
+            },
+            {
+              "id": 15,
+              "title": "Mãe"
+            },
+            {
+              "id": 18,
+              "title": "Mês"
+            },
+            {
+              "id": 19,
+              "title": "Parto"
+            },
+            {
+              "id": 20,
+              "title": "Experiência"
+            },
+            {
+              "id": 21,
+              "title": "Pessoas"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "name": "Presente",
+          "items": [
+            {
+              "id": 11,
+              "title": "Físico"
+            },
+            {
+              "id": 12,
+              "title": "Emocional"
+            },
+            {
+              "id": 13,
+              "title": "Mental"
+            },
+            {
+              "id": 22,
+              "title": "Body in Sync"
+            },
+            {
+              "id": 23,
+              "title": "N.S. Balance"
+            },
+            {
+              "id": 24,
+              "title": "Unwind"
+            },
+            {
+              "id": 25,
+              "title": "Master II"
+            },
+            {
+              "id": 26,
+              "title": "Olho Esquerdo Fechado"
+            },
+            {
+              "id": 27,
+              "title": "Olho Direito Fechado"
+            },
+            {
+              "id": 28,
+              "title": "Reclamação Física"
+            },
+            {
+              "id": 29,
+              "title": "Meta"
+            },
+            {
+              "id": 30,
+              "title": "Pensamento"
+            },
+            {
+              "id": 31,
+              "title": "Diagnóstico"
+            },
+            {
+              "id": 32,
+              "title": "Dores"
+            },
+            {
+              "id": 33,
+              "title": "Sintoma"
+            },
+            {
+              "id": 34,
+              "title": "Recorrente"
+            },
+            {
+              "id": 35,
+              "title": "Condenação"
+            },
+            {
+              "id": 36,
+              "title": "Projeção"
+            },
+            {
+              "id": 37,
+              "title": "Negação"
+            },
+            {
+              "id": 38,
+              "title": "Dúvida"
+            },
+            {
+              "id": 39,
+              "title": "Desejo"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "name": "Futuro",
+          "items": [
+            {
+              "id": 6,
+              "title": "Projeção / Futuro"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

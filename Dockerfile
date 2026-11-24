@@ -47,11 +47,9 @@ COPY --chown=nextjs:nodejs <<'EOF' /app/entrypoint.sh
 #!/bin/sh
 set -e
 
-# Se o banco SQLite não existir no volume persistente, aplica o schema
-if [ ! -f /app/prisma/dev.db ]; then
-  echo "Inicializando banco de dados no Easypanel..."
-  npx prisma db push
-fi
+# Se o banco SQLite não existir no volume persistente ou precisar atualizar colunas, sincroniza o schema
+echo "Sincronizando schema do banco de dados SQLite..."
+npx prisma db push --skip-generate --accept-data-loss || true
 
 exec "$@"
 EOF

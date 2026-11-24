@@ -21,6 +21,7 @@ export async function saveClinicalRecordAction({
   aiAssisted,
   isLocked,
   emocoesTrabalhadas = [],
+  situacoes = [],
 }: {
   patientId: string;
   appointmentId?: string;
@@ -29,6 +30,12 @@ export async function saveClinicalRecordAction({
   aiAssisted: boolean;
   isLocked: boolean;
   emocoesTrabalhadas?: string[];
+  situacoes?: {
+    categoria: string;
+    situacao: string;
+    complemento?: string;
+    emocoes?: string[];
+  }[];
 }) {
   const tenant = await getCurrentTenant();
   if (!tenant) throw new Error('Tenant não encontrado.');
@@ -39,6 +46,12 @@ export async function saveClinicalRecordAction({
   const rawDraftEnc = encryptText(rawNotes);
   const soapEnc = encryptText(JSON.stringify(soap));
 
+  // Empacota emoções e situações estruturadas
+  const payloadToStore = {
+    emocoes: emocoesTrabalhadas,
+    situacoes: situacoes,
+  };
+
   const record = await db.records.create({
     patientId,
     appointmentId: appointmentId || null,
@@ -47,7 +60,7 @@ export async function saveClinicalRecordAction({
     soapEnc,
     aiAssisted,
     isLocked,
-    emocoesTrabalhadas: emocoesTrabalhadas.length > 0 ? JSON.stringify(emocoesTrabalhadas) : null,
+    emocoesTrabalhadas: JSON.stringify(payloadToStore),
   });
 
   // Se houver agendamento vinculado, marca como 'completed'

@@ -40,8 +40,8 @@ export async function GET(request: Request) {
       // 1. LEMBRETE DE 24 HORAS ANTES
       // ==========================================
       if (tenant.whatsappAutoReminder) {
-        const start24h = new Date(now.getTime() + 22 * 60 * 60 * 1000); // 22h no futuro
-        const end24h = new Date(now.getTime() + 26 * 60 * 60 * 1000);   // 26h no futuro
+        const start24h = new Date(now.getTime() + 12 * 60 * 60 * 1000); // 12h no futuro
+        const end24h = new Date(now.getTime() + 28 * 60 * 60 * 1000);   // 28h no futuro
 
         const appointments24h = await prisma.appointment.findMany({
           where: {
@@ -96,15 +96,15 @@ export async function GET(request: Request) {
       // 2. LEMBRETE DE 2 HORAS ANTES
       // ==========================================
       if (tenant.whatsappSend2hReminder) {
-        const start2h = new Date(now.getTime() + 1 * 60 * 60 * 1000);   // 1h no futuro
-        const end2h = new Date(now.getTime() + 2.5 * 60 * 60 * 1000);   // 2h30 no futuro
+        // Envia para qualquer sessão futura hoje dentro das próximas 2h30 cujo lembrete de 2h não foi enviado
+        const end2h = new Date(now.getTime() + 2.5 * 60 * 60 * 1000);   // até 2h30 no futuro
 
         const appointments2h = await prisma.appointment.findMany({
           where: {
             tenantId: tenant.id,
             status: { in: ['scheduled', 'confirmed'] },
             reminder2hSent: false,
-            scheduledAt: { gte: start2h, lte: end2h },
+            scheduledAt: { gte: now, lte: end2h },
           },
           include: { patient: true },
         });

@@ -79,11 +79,19 @@ export default async function ProntuarioPage({
     }
 
     let emocoes: string[] = [];
+    let situacoes: any[] = [];
     if (r.emocoesTrabalhadas) {
       try {
-        emocoes = JSON.parse(r.emocoesTrabalhadas);
+        const parsed = JSON.parse(r.emocoesTrabalhadas);
+        if (Array.isArray(parsed)) {
+          emocoes = parsed;
+        } else if (parsed && typeof parsed === 'object') {
+          emocoes = parsed.emocoes || [];
+          situacoes = parsed.situacoes || [];
+        }
       } catch {
         emocoes = [];
+        situacoes = [];
       }
     }
 
@@ -100,6 +108,7 @@ export default async function ProntuarioPage({
       rawNotes,
       soap,
       emocoesTrabalhadas: emocoes,
+      situacoes,
       modality: r.appointment?.modality || patient.modalityPreference || 'online',
       sessionType: r.appointment?.sessionType || patient.sessionTypePreference || 'regular',
       status: r.appointment?.status || 'completed',

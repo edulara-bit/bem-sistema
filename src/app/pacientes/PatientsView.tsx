@@ -20,9 +20,11 @@ import {
   Video,
   MapPin,
   Package as PackageIcon,
-  Award
+  Award,
+  RefreshCw,
+  CheckCircle2
 } from 'lucide-react';
-import { createPatientAction, updatePatientAction } from './actions';
+import { createPatientAction, updatePatientAction, seedTestPatientAction } from './actions';
 
 interface PackageItem {
   id: string;
@@ -60,6 +62,25 @@ export function PatientsView({
   const [editingPatient, setEditingPatient] = useState<PatientItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isSeedingTest, setIsSeedingTest] = useState(false);
+  const [seedSuccessMsg, setSeedSuccessMsg] = useState<string | null>(null);
+
+  const handleSeedPatient = async () => {
+    if (confirm('Deseja criar/restaurar a paciente teste "Mariana Silva" com 3 sessões anteriores (SOAP + apontamentos de medos/relacionamentos) e 1 agendamento futuro?')) {
+      try {
+        setIsSeedingTest(true);
+        const res = await seedTestPatientAction();
+        if (res.success) {
+          setSeedSuccessMsg('Paciente teste Mariana Silva gerada com sucesso com 3 sessões ricas e 1 agendada!');
+          setTimeout(() => setSeedSuccessMsg(null), 6000);
+        }
+      } catch (err: any) {
+        alert('Erro ao gerar paciente teste: ' + err.message);
+      } finally {
+        setIsSeedingTest(false);
+      }
+    }
+  };
 
   // Estados dinâmicos do formulário modal
   const [formModality, setFormModality] = useState<'online' | 'in_person'>('online');
@@ -128,14 +149,45 @@ export function PatientsView({
           </p>
         </div>
 
-        <button
-          onClick={handleOpenNew}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1F4D36] text-white text-xs font-semibold hover:bg-[#183C2A] transition-all shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Novo Paciente
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleSeedPatient}
+            disabled={isSeedingTest}
+            title="Gera uma paciente de testes completa com histórico de 3 sessões anteriores e 1 futura"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold hover:bg-amber-100 transition-all shadow-xs disabled:opacity-50"
+          >
+            {isSeedingTest ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-700" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+            )}
+            <span>Restaurar Paciente Teste (Mariana Silva)</span>
+          </button>
+
+          <button
+            onClick={handleOpenNew}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1F4D36] text-white text-xs font-semibold hover:bg-[#183C2A] transition-all shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Novo Paciente
+          </button>
+        </div>
       </div>
+
+      {seedSuccessMsg && (
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between font-medium animate-fade-in shadow-xs">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{seedSuccessMsg}</span>
+          </div>
+          <button
+            onClick={() => setSeedSuccessMsg(null)}
+            className="text-amber-700 hover:text-amber-900 text-xs ml-4"
+          >
+            Fechar
+          </button>
+        </div>
+      )}
 
       {/* Busca */}
       <div className="relative">

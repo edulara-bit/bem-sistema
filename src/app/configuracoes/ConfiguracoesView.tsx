@@ -32,7 +32,9 @@ import {
   connectWhatsAppAction, 
   disconnectWhatsAppAction,
   createPackageAction,
-  deletePackageAction
+  deletePackageAction,
+  triggerManualRemindersAction,
+  sendTestWhatsAppMessageAction
 } from './actions';
 
 interface TenantData {
@@ -91,6 +93,46 @@ export function ConfiguracoesView({
   // Estado para múltiplos lembretes
   const [reminder24h, setReminder24h] = useState<boolean>(tenant.whatsappAutoReminder ?? true);
   const [reminder2h, setReminder2h] = useState<boolean>(tenant.whatsappSend2hReminder ?? true);
+
+  // Estados para testes e disparos manuais do WhatsApp
+  const [isTriggeringReminders, setIsTriggeringReminders] = useState(false);
+  const [reminderReport, setReminderReport] = useState<{ totalSent: number; results: any[] } | null>(null);
+  const [testPhone, setTestPhone] = useState(tenant.whatsapp || '');
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testFeedback, setTestFeedback] = useState<{ success: boolean; msg: string } | null>(null);
+
+  const handleManualTrigger = async () => {
+    setIsTriggeringReminders(true);
+    try {
+      const res = await triggerManualRemindersAction();
+      setReminderReport(res);
+    } catch (err: any) {
+      alert('Erro ao disparar lembretes: ' + err.message);
+    } finally {
+      setIsTriggeringReminders(false);
+    }
+  };
+
+  const handleSendTestMessage = async () => {
+    if (!testPhone.trim()) {
+      alert('Informe um número de telefone com DDD para testar.');
+      return;
+    }
+    setIsSendingTest(true);
+    setTestFeedback(null);
+    try {
+      const res = await sendTestWhatsAppMessageAction(testPhone);
+      if (res.success) {
+        setTestFeedback({ success: true, msg: 'Mensagem de teste enviada com sucesso para o WhatsApp!' });
+      } else {
+        setTestFeedback({ success: false, msg: `Falha: ${res.error || 'Verifique se o WhatsApp está conectado.'}` });
+      }
+    } catch (err: any) {
+      setTestFeedback({ success: false, msg: err.message });
+    } finally {
+      setIsSendingTest(false);
+    }
+  };
 
   // Estado para criação rápida de pacotes
   const [showNewPackageModal, setShowNewPackageModal] = useState(false);
@@ -639,6 +681,148 @@ export function ConfiguracoesView({
                     </p>
                   </div>
                 )}
+              </div>
+
+              {/* Testes & Disparos Manuais */}
+              <div className="pt-4 border-t border-[#E8E5DF] space-y-4">
+                <h3 className="text-xs font-bold text-[#222924] uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                  Ferramentas de Teste e Disparo Imediato
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Caixa 1: Disparo Manual dos Lembretes de Hoje */}
+                  <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/40 space-y-3">
+                    <div>
+                      <h4 className="font-bold text-xs text-amber-900 flex items-center gap-1.5">
+                        <MessageCircle className="w-3.5 h-3.5 text-amber-700" />
+                        Disparar Lembretes de Hoje Manualmente
+                      </h4>
+                      <p className="text-[11px] text-amber-800/80 mt-1">
+                        Verifica e envia imediatamente todos os lembretes pendentes para os atendimentos de hoje (24h e 2h antes).
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleManualTrigger}
+                      disabled={isTriggeringReminders || whatsappStatus !== 'open'}
+                      className="w-full py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs disabled:opacity-50 transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      {isTriggeringReminders ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Verificando e disparando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Disparar Lembretes Pendentes Agora</span>
+                        </>
+                      )}
+                    </button>
+
+                    {reminderReport && (
+                      <div className="p-2.5 rounded-lg bg-white border border-amber-200 text-xs space-y-1.5">
+                        <div className="font-bold text-amber-900">
+                          {reminderReport.totalSent > 0
+                            ? `✅ ${reminderReport.totalSent} lembrete(s) enviado(s) com sucesso!`
+                            : 'ℹ️ Nenhum lembrete pendente para este momento.'}
+                        </div>
+                        {reminderReport.results.length > 0 && (
+                          <div className="space-y-1 max-h-36 overflow-y-auto">
+                            {reminderReport.results.map((r: any, idx: number) => (
+                              <div
+                                key={idx}
+                                className={`text-[10px] p-1.5 rounded flex items-center justify-between ${
+                                  r.status === 'sent'
+                                    ? 'bg-emerald-50 text-emerald-800'
+                                    : 'bg-rose-50 text-rose-800'
+                                }`}
+                              >
+                                <span>
+                                  <strong>{r.patient}</strong> ({r.type})
+                                </span>
+                                <span>{r.status === 'sent' ? r.time : r.error}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Caixa 2: Enviar Mensagem de Teste no Próprio WhatsApp */}
+                  <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 space-y-3">
+                    <div>
+                      <h4 className="font-bold text-xs text-emerald-900 flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-emerald-700" />
+                        Testar Conexão no seu WhatsApp
+                      </h4>
+                      <p className="text-[11px] text-emerald-800/80 mt-1">
+                        Envie uma mensagem de teste para o seu próprio número para garantir que a Evolution API está ativa.
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <input
+                        type="text"
+                        value={testPhone}
+                        onChange={(e) => setTestPhone(e.target.value)}
+                        placeholder="Seu telefone com DDD (ex: 19996858958)"
+                        className="w-full p-2 rounded-lg border border-emerald-300 bg-white text-xs text-[#222924] focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={handleSendTestMessage}
+                        disabled={isSendingTest || whatsappStatus !== 'open'}
+                        className="w-full py-2 px-3 rounded-lg bg-[#1F4D36] hover:bg-[#183C2A] text-white font-bold text-xs disabled:opacity-50 transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        {isSendingTest ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Enviando teste...</span>
+                          </>
+                        ) : (
+                          <>
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>Enviar Mensagem de Teste</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {testFeedback && (
+                      <div
+                        className={`p-2.5 rounded-lg text-xs font-semibold ${
+                          testFeedback.success
+                            ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                            : 'bg-rose-100 text-rose-900 border border-rose-300'
+                        }`}
+                      >
+                        {testFeedback.msg}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Caixa 3: Instrução do Cron na VPS */}
+                <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 text-xs text-gray-700 space-y-2">
+                  <div className="font-bold flex items-center gap-1.5 text-gray-900">
+                    <Clock className="w-4 h-4 text-gray-600" />
+                    Automação no Servidor Linux (Crontab da VPS)
+                  </div>
+                  <p className="text-[11px] text-gray-600">
+                    Para que os lembretes sejam disparados mesmo quando o navegador estiver fechado, adicione a linha abaixo no crontab da VPS rodando no terminal Linux (<code>crontab -e</code>):
+                  </p>
+                  <pre className="p-2.5 rounded-lg bg-gray-900 text-emerald-400 text-[11px] font-mono overflow-x-auto select-all">
+                    */10 * * * * curl -s &quot;http://127.0.0.1:3002/api/cron/reminders?token=bem_cron_token_secret_hostinger&quot; &gt; /dev/null 2&gt;&amp;1
+                  </pre>
+                  <p className="text-[10px] text-gray-500">
+                    Isso fará o servidor checar os agendamentos a cada 10 minutos e disparar os lembretes pontualmente.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

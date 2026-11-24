@@ -93,8 +93,8 @@ export async function sendWhatsAppMessage(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Formata o número (DDI 55 + DDD + Número)
-    let cleanPhone = toPhone.replace(/\D/g, '');
-    if (!cleanPhone.startsWith('55') && cleanPhone.length >= 10 && cleanPhone.length <= 11) {
+    let cleanPhone = toPhone.replace(/\D/g, '').replace(/^0+/, '');
+    if (!cleanPhone.startsWith('55') && (cleanPhone.length === 10 || cleanPhone.length === 11)) {
       cleanPhone = `55${cleanPhone}`;
     }
 

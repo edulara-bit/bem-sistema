@@ -24,9 +24,13 @@ import {
   Info,
   ChevronDown,
   ChevronUp,
-  FileText
+  FileText,
+  BookmarkPlus,
+  Trash2,
+  FolderTree
 } from 'lucide-react';
 import { generateSoapAction, saveClinicalRecordAction } from './actions';
+import { getRootCategories, getSituationsByCategory } from '@/lib/protocols';
 
 interface SoapData {
   subjective: string;
@@ -35,12 +39,20 @@ interface SoapData {
   plan: string;
 }
 
+export interface ApontamentoSituacao {
+  categoria: string;
+  situacao: string;
+  complemento?: string;
+  emocoes?: string[];
+}
+
 interface HistoricalRecord {
   id: string;
   sessionDate: string;
   rawNotes?: string;
   soap: SoapData;
   emocoesTrabalhadas?: string[];
+  situacoes?: ApontamentoSituacao[];
   modality?: string;
   sessionType?: string;
   status?: string;
@@ -93,6 +105,46 @@ export function ProntuarioView({
   const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
   const [emotionSearch, setEmotionSearch] = useState('');
   const [emotionFilter, setEmotionFilter] = useState<'all' | 'Negativa' | 'Positiva'>('all');
+
+  // Estados de Situações & Protocolos Clínicos (Medos, Relacionamentos, Linha do Tempo)
+  const [situacoesList, setSituacoesList] = useState<ApontamentoSituacao[]>([]);
+  const [currentCategory, setCurrentCategory] = useState<string>('Medos');
+  const [currentSituation, setCurrentSituation] = useState<string>('Abandono');
+  const [currentComplement, setCurrentComplement] = useState<string>('');
+  const [currentAssocEmotions, setCurrentAssocEmotions] = useState<string[]>([]);
+
+  // Atualiza a situação padrão quando a categoria muda
+  const handleCategoryChange = (cat: string) => {
+    setCurrentCategory(cat);
+    const items = getSituationsByCategory(cat);
+    if (items.length > 0) {
+      setCurrentSituation(items[0].title);
+    }
+  };
+
+  const handleAddSituacao = () => {
+    if (!currentSituation) return;
+    const newSit: ApontamentoSituacao = {
+      categoria: currentCategory,
+      situacao: currentSituation,
+      complemento: currentComplement.trim() || undefined,
+      emocoes: currentAssocEmotions.length > 0 ? [...currentAssocEmotions] : undefined,
+    };
+    setSituacoesList([...situacoesList, newSit]);
+
+    // Também inclui as emoções no conjunto geral da sessão
+    if (currentAssocEmotions.length > 0) {
+      const merged = Array.from(new Set([...selectedEmotions, ...currentAssocEmotions]));
+      setSelectedEmotions(merged);
+    }
+
+    setCurrentComplement('');
+    setCurrentAssocEmotions([]);
+  };
+
+  const handleRemoveSituacao = (index: number) => {
+    setSituacoesList(situacoesList.filter((_, i) => i !== index));
+  };
 
   // Modal para exibir a descrição terapêutica de uma emoção clicada
   const [readingEmotion, setReadingEmotion] = useState<EmotionItem | null>(null);
@@ -198,6 +250,7 @@ export function ProntuarioView({
         aiAssisted: Boolean(soap.subjective && soap.plan),
         isLocked,
         emocoesTrabalhadas: selectedEmotions,
+        situacoes: situacoesList,
       });
       // Limpa rascunho local após salvar no banco com criptografia
       localStorage.removeItem(storageKey);
@@ -208,6 +261,7 @@ export function ProntuarioView({
       setRawNotes('');
       setSoap({ subjective: '', objective: '', assessment: '', plan: '' });
       setSelectedEmotions([]);
+      setSituacoesList([]);
       setActiveTab('historico');
     } catch (err: any) {
       alert('Erro ao salvar prontuário: ' + err.message);
@@ -407,6 +461,49 @@ export function ProntuarioView({
                         <p className="text-xs text-[#222924] leading-relaxed whitespace-pre-line">
                           {record.rawNotes}
                         </p>
+                      </div>
+                    )}
+
+                    {/* Situações & Protocolos Trabalhados nesta Sessão */}
+                    {record.situacoes && record.situacoes.length > 0 && (
+                      <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/90 space-y-2">
+                        <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                          <BookmarkPlus className="w-3.5 h-3.5 text-amber-700" />
+                          Situações & Protocolos Bioenergéticos ({record.situacoes.length})
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                          {record.situacoes.map((sit, sitIdx) => (
+                            <div
+                              key={sitIdx}
+                              className="bg-white p-2.5 rounded-xl border border-amber-200 shadow-2xs space-y-1.5"
+                            >
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-800">
+                                  {sit.categoria}
+                                </span>
+                                <span className="text-xs font-bold text-[#222924]">➔ {sit.situacao}</span>
+                              </div>
+                              {sit.complemento && (
+                                <p className="text-[11px] text-[#6B726B] italic font-medium">
+                                  &quot;{sit.complemento}&quot;
+                                </p>
+                              )}
+                              {sit.emocoes && sit.emocoes.length > 0 && (
+                                <div className="flex flex-wrap gap-1 items-center pt-1 border-t border-amber-100">
+                                  <span className="text-[9px] text-gray-500 font-semibold uppercase">Emoções:</span>
+                                  {sit.emocoes.map((e) => (
+                                    <span
+                                      key={e}
+                                      className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200"
+                                    >
+                                      {e}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
 
@@ -646,13 +743,185 @@ export function ProntuarioView({
             </div>
           </div>
 
-          {/* SEÇÃO 3: Emoções Trabalhadas nesta Sessão */}
+          {/* SEÇÃO 3: Situações & Protocolos Bioenergéticos (Medos, Relacionamentos, Linha do Tempo) */}
+          <div className="bg-white rounded-2xl border border-[#E8E5DF] shadow-sm p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E8E5DF] pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-[#222924] flex items-center gap-2">
+                  <BookmarkPlus className="w-4 h-4 text-amber-600" />
+                  3. Situações & Protocolos Bioenergéticos ({situacoesList.length} apontamentos)
+                </h2>
+                <p className="text-[11px] text-[#6B726B]">
+                  Aponte os medos, relacionamentos ou momentos da linha do tempo trabalhados e associe às emoções correspondentes.
+                </p>
+              </div>
+
+              {/* Seletor Rápido de Categorias Principais */}
+              <div className="flex items-center gap-1.5 bg-[#FBF9F5] p-1 rounded-xl border border-[#E8E5DF] text-[11px] font-semibold text-[#6B726B]">
+                {getRootCategories().map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => handleCategoryChange(cat)}
+                    className={`px-3 py-1 rounded-lg transition-all ${
+                      currentCategory === cat
+                        ? 'bg-[#1F4D36] text-white shadow-xs'
+                        : 'hover:bg-white text-[#222924]'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Painel de Adição de Apontamento */}
+            <div className="p-4 rounded-xl bg-amber-50/50 border border-amber-200/80 space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#222924] mb-1">
+                    Situação / Subcategoria ({currentCategory}):
+                  </label>
+                  <select
+                    value={currentSituation}
+                    onChange={(e) => setCurrentSituation(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-amber-300 bg-white text-xs text-[#222924] font-medium focus:outline-none focus:ring-2 focus:ring-[#1F4D36]"
+                  >
+                    {getSituationsByCategory(currentCategory).map((sit) => (
+                      <option key={sit.title} value={sit.title}>
+                        {sit.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] font-bold text-[#222924] mb-1">
+                    Complemento / Especificação (Opcional):
+                  </label>
+                  <input
+                    type="text"
+                    value={currentComplement}
+                    onChange={(e) => setCurrentComplement(e.target.value)}
+                    placeholder="Ex: Pessoa que ama, Ansiedade financeira, Dores cervicais, Expectativa dos pais..."
+                    className="w-full p-2.5 rounded-xl border border-amber-300 bg-white text-xs text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]"
+                  />
+                </div>
+              </div>
+
+              {/* Emoções Associadas a esta Situação */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold text-[#222924]">
+                  Emoções associadas a esta situação:
+                </label>
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  {currentAssocEmotions.map((emo) => (
+                    <span
+                      key={emo}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-100 text-rose-900 border border-rose-300"
+                    >
+                      {emo}
+                      <button
+                        type="button"
+                        onClick={() => setCurrentAssocEmotions(currentAssocEmotions.filter((x) => x !== emo))}
+                        className="text-rose-700 hover:text-rose-900"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+
+                  {/* Seletor rápido de emoções frequentes ou busca */}
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value && !currentAssocEmotions.includes(e.target.value)) {
+                        setCurrentAssocEmotions([...currentAssocEmotions, e.target.value]);
+                      }
+                    }}
+                    className="p-1.5 rounded-lg border border-amber-300 bg-white text-xs text-[#222924] focus:outline-none"
+                  >
+                    <option value="">+ Vincular emoção...</option>
+                    {emotionsCatalog.map((emo) => (
+                      <option key={emo.title} value={emo.title}>
+                        {emo.title} ({emo.type})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={handleAddSituacao}
+                  className="px-4 py-2 rounded-xl bg-[#1F4D36] text-white text-xs font-bold hover:bg-[#183C2A] transition-all flex items-center gap-1.5 shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Adicionar Apontamento à Sessão
+                </button>
+              </div>
+            </div>
+
+            {/* Lista de Situações Adicionadas nesta Sessão */}
+            {situacoesList.length > 0 && (
+              <div className="space-y-2 pt-2">
+                <span className="text-[11px] font-bold text-[#222924] block">
+                  Situações que serão registradas nesta evolução:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {situacoesList.map((sit, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-[#FBF9F5] p-3 rounded-xl border border-amber-200 flex items-start justify-between gap-2 shadow-2xs"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-800">
+                            {sit.categoria}
+                          </span>
+                          <span className="text-xs font-bold text-[#222924]">➔ {sit.situacao}</span>
+                        </div>
+                        {sit.complemento && (
+                          <p className="text-[11px] text-[#6B726B] italic">&quot;{sit.complemento}&quot;</p>
+                        )}
+                        {sit.emocoes && sit.emocoes.length > 0 && (
+                          <div className="flex flex-wrap gap-1 items-center pt-1">
+                            <span className="text-[9px] text-gray-500 font-semibold uppercase">Emoções:</span>
+                            {sit.emocoes.map((e) => (
+                              <span
+                                key={e}
+                                className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200"
+                              >
+                                {e}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSituacao(idx)}
+                        className="text-gray-400 hover:text-rose-600 transition-colors p-1"
+                        title="Remover apontamento"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* SEÇÃO 4: Emoções Trabalhadas nesta Sessão */}
           <div className="bg-white rounded-2xl border border-[#E8E5DF] shadow-sm p-5 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E8E5DF] pb-3">
               <div>
                 <h2 className="text-sm font-bold text-[#222924] flex items-center gap-2">
                   <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
-                  3. Apontamento de Emoções Trabalhadas ({selectedEmotions.length} selecionadas)
+                  4. Apontamento de Emoções Trabalhadas ({selectedEmotions.length} selecionadas)
                 </h2>
                 <p className="text-[11px] text-[#6B726B]">
                   Selecione as emoções liberadas (negativas) ou ancoradas (positivas) durante os exercícios bioenergéticos.
