@@ -15,9 +15,14 @@ import {
   Building2,
   Sparkles,
   Phone,
-  FileCheck
+  FileCheck,
+  MessageCircle,
+  QrCode,
+  RefreshCw,
+  Power,
+  Clock
 } from 'lucide-react';
-import { updateTenantSettingsAction } from './actions';
+import { updateTenantSettingsAction, connectWhatsAppAction, disconnectWhatsAppAction } from './actions';
 
 interface TenantData {
   id: string;
@@ -35,6 +40,12 @@ interface TenantData {
   professionalReg?: string | null;
   meetingUrlDefault?: string | null;
   address?: string | null;
+  whatsappInstanceName?: string | null;
+  whatsappStatus?: string | null;
+  whatsappQrCode?: string | null;
+  whatsappAutoReminder?: boolean;
+  whatsappReminderHours?: number;
+  whatsappReminderText?: string | null;
 }
 
 export function ConfiguracoesView({
@@ -47,6 +58,38 @@ export function ConfiguracoesView({
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isLoadingQr, setIsLoadingQr] = useState(false);
+  const [qrCode, setQrCode] = useState<string | null>(tenant.whatsappQrCode || null);
+  const [whatsappStatus, setWhatsappStatus] = useState<string>(tenant.whatsappStatus || 'disconnected');
+
+  const handleConnectWhatsApp = async () => {
+    setIsLoadingQr(true);
+    try {
+      const res = await connectWhatsAppAction();
+      setWhatsappStatus(res.status);
+      if (res.qrcode) {
+        setQrCode(res.qrcode);
+      }
+    } catch (err: any) {
+      alert('Erro ao conectar WhatsApp: ' + err.message);
+    } finally {
+      setIsLoadingQr(false);
+    }
+  };
+
+  const handleDisconnectWhatsApp = async () => {
+    if (!confirm('Deseja realmente desconectar o WhatsApp deste consultório?')) return;
+    setIsLoadingQr(true);
+    try {
+      await disconnectWhatsAppAction();
+      setWhatsappStatus('disconnected');
+      setQrCode(null);
+    } catch (err: any) {
+      alert('Erro ao desconectar WhatsApp: ' + err.message);
+    } finally {
+      setIsLoadingQr(false);
+    }
+  };
 
   const copyPublicUrl = () => {
     navigator.clipboard.writeText(publicUrl);
@@ -317,6 +360,142 @@ export function ConfiguracoesView({
               placeholder="Ex: Av. Paulista, 1000 - Sala 42, Bela Vista - São Paulo"
               className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30 text-sm"
             />
+          </div>
+        </div>
+
+        {/* Seção 4: WhatsApp Próprio do Consultório & Lembretes Automáticos */}
+        <div className="bg-white p-6 sm:p-7 rounded-3xl border border-[#E8E5DF] shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8E5DF] pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-[#25D366]" />
+                <h2 className="text-base font-bold text-[#222924]">WhatsApp do Consultório & Lembretes</h2>
+              </div>
+              <p className="text-xs text-[#6B726B] mt-0.5">
+                Conecte o WhatsApp do seu consultório via QR Code para disparar lembretes automáticos de consulta.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 ${
+                  whatsappStatus === 'open'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : whatsappStatus === 'connecting'
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    whatsappStatus === 'open'
+                      ? 'bg-emerald-500 animate-pulse'
+                      : whatsappStatus === 'connecting'
+                      ? 'bg-amber-500'
+                      : 'bg-gray-400'
+                  }`}
+                />
+                {whatsappStatus === 'open'
+                  ? 'WhatsApp Conectado'
+                  : whatsappStatus === 'connecting'
+                  ? 'Aguardando Leitura'
+                  : 'Desconectado'}
+              </span>
+
+              {whatsappStatus === 'open' ? (
+                <button
+                  type="button"
+                  onClick={handleDisconnectWhatsApp}
+                  disabled={isLoadingQr}
+                  className="px-3 py-1.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold flex items-center gap-1 transition-all"
+                >
+                  <Power className="w-3.5 h-3.5" />
+                  Desconectar
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleConnectWhatsApp}
+                  disabled={isLoadingQr}
+                  className="px-3 py-1.5 rounded-xl bg-[#25D366] text-white hover:bg-[#1eb956] text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  {isLoadingQr ? 'Gerando QR...' : 'Conectar Celular'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Área do QR Code quando aguardando conexão */}
+          {whatsappStatus !== 'open' && qrCode && (
+            <div className="p-6 rounded-2xl bg-[#FBF9F5] border border-[#E8E5DF] text-center max-w-sm mx-auto space-y-3">
+              <p className="text-xs font-bold text-[#222924]">
+                Abra o WhatsApp no seu celular ➔ Aparelhos Conectados ➔ Conectar um Aparelho:
+              </p>
+              <div className="p-3 bg-white rounded-xl border border-[#E8E5DF] inline-block shadow-sm">
+                <img
+                  src={qrCode.startsWith('data:image') ? qrCode : `data:image/png;base64,${qrCode}`}
+                  alt="QR Code WhatsApp"
+                  className="w-56 h-56 mx-auto object-contain"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleConnectWhatsApp}
+                className="text-xs text-[#1F4D36] font-semibold hover:underline flex items-center justify-center gap-1 mx-auto"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Atualizar QR Code
+              </button>
+            </div>
+          )}
+
+          {/* Configurações de Envio Automático */}
+          <div className="space-y-4 pt-2">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                name="whatsappAutoReminder"
+                defaultChecked={tenant.whatsappAutoReminder ?? true}
+                className="w-4 h-4 rounded text-[#1F4D36] focus:ring-[#1F4D36]"
+              />
+              <span className="text-xs font-bold text-[#222924]">
+                Disparar lembretes automáticos de consulta para os pacientes
+              </span>
+            </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#222924] mb-1">
+                  Antecedência do Lembrete
+                </label>
+                <select
+                  name="whatsappReminderHours"
+                  defaultValue={tenant.whatsappReminderHours || 24}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30"
+                >
+                  <option value="48">48 horas antes</option>
+                  <option value="24">24 horas antes (Recomendado)</option>
+                  <option value="12">12 horas antes</option>
+                  <option value="2">2 horas antes</option>
+                </select>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-[#222924] mb-1">
+                  Modelo da Mensagem (tags: {'{paciente}'}, {'{data}'}, {'{horario}'}, {'{terapeuta}'}, {'{modalidade}'})
+                </label>
+                <input
+                  type="text"
+                  name="whatsappReminderText"
+                  defaultValue={
+                    tenant.whatsappReminderText ||
+                    'Olá {paciente}! Lembramos da sua sessão de Bioenergética com {terapeuta} marcada para {data} às {horario} ({modalidade}). Caso precise reagendar, avise por aqui com antecedência. Até breve!'
+                  }
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30"
+                />
+              </div>
+            </div>
           </div>
         </div>
 

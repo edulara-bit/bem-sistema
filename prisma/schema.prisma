@@ -25,6 +25,15 @@ model Tenant {
   professionalReg   String?  // Ex: CRP 06/123456 ou CRTH-BR 1234
   meetingUrlDefault String?  // Link de sala virtual padrão (Google Meet / Zoom)
   address           String?  // Endereço físico do consultório (opcional)
+
+  // Configurações do WhatsApp Exclusivo do Consultório (Evolution API)
+  whatsappInstanceName String? // Ex: tenant_edulara
+  whatsappStatus       String  @default("disconnected") // disconnected, connecting, open, close
+  whatsappQrCode       String? // Base64 do QR code para leitura na tela
+  whatsappAutoReminder Boolean @default(true) // Enviar lembretes automáticos
+  whatsappReminderHours Int    @default(24) // Horas de antecedência para o lembrete (padrão 24h)
+  whatsappReminderText String? // Mensagem personalizada do lembrete
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -86,6 +95,7 @@ model Appointment {
   meetingUrl  String?
   price       Float    @default(0.0)
   notes       String?
+  reminderSent Boolean @default(false) // Flag para não reenviar lembrete
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

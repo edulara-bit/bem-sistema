@@ -3,6 +3,45 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentTenant } from '@/lib/current-tenant';
 import { revalidatePath } from 'next/cache';
+import { getOrCreateWhatsAppInstance, logoutWhatsAppInstance } from '@/lib/whatsapp';
+
+export async function connectWhatsAppAction() {
+  const current = await getCurrentTenant();
+  if (!current) throw new Error('Consultório não identificado.');
+
+  const res = await getOrCreateWhatsAppInstance(current.slug);
+  await prisma.tenant.update({
+    where: { id: current.id },
+    data: {
+      whatsappInstanceName: res.instanceName,
+      whatsappStatus: res.status,
+      whatsappQrCode: res.qrcode || null,
+    },
+  });
+
+  revalidatePath('/configuracoes');
+  return res;
+}
+
+export async function disconnectWhatsAppAction() {
+  const current = await getCurrentTenant();
+  if (!current) throw new Error('Consultório não identificado.');
+
+  if (current.whatsappInstanceName) {
+    await logoutWhatsAppInstance(current.whatsappInstanceName);
+  }
+
+  await prisma.tenant.update({
+    where: { id: current.id },
+    data: {
+      whatsappStatus: 'disconnected',
+      whatsappQrCode: null,
+    },
+  });
+
+  revalidatePath('/configuracoes');
+  return { success: true };
+}
 
 export async function updateTenantSettingsAction(formData: FormData) {
   const current = await getCurrentTenant();
@@ -22,6 +61,9 @@ export async function updateTenantSettingsAction(formData: FormData) {
   const address = (formData.get('address') as string) || '';
   const whatsapp = (formData.get('whatsapp') as string) || '';
   const instagram = (formData.get('instagram') as string) || '';
+  const whatsappAutoReminder = formData.get('whatsappAutoReminder') === 'on';
+  const whatsappReminderHours = parseInt((formData.get('whatsappReminderHours') as string) || '24', 10);
+  const whatsappReminderText = (formData.get('whatsappReminderText') as string) || '';
 
   await prisma.tenant.update({
     where: { id: tenant.id },
@@ -38,6 +80,9 @@ export async function updateTenantSettingsAction(formData: FormData) {
       address,
       whatsapp,
       instagram,
+      whatsappAutoReminder,
+      whatsappReminderHours,
+      whatsappReminderText,
     },
   });
 
