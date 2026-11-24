@@ -1,0 +1,208 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id                String   @id @default(cuid())
+  name              String
+  slug              String   @unique
+  plan              String   @default("free") // free, pro, clinic
+  headline          String?  // Ex: "Psicoterapia & Acolhimento Humanizado"
+  bio               String?  // Descrição do terapeuta para a página pública
+  whatsapp          String?  // WhatsApp para contato direto
+  instagram         String?  // @doinstagram
+  consultationPrice Float    @default(220.0)
+  monthlyIncomeGoal Float    @default(10000.0)
+  weeklyMaxHours    Int      @default(20)
+  pixKey            String?  // Chave Pix própria do terapeuta
+  pixType           String?  @default("email") // cpf, cnpj, email, phone, random
+  pixName           String?  // Nome completo do titular do Pix
+  professionalReg   String?  // Ex: CRP 06/123456 ou CRTH-BR 1234
+  meetingUrlDefault String?  // Link de sala virtual padrão (Google Meet / Zoom)
+  address           String?  // Endereço físico do consultório (opcional)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  users        User[]
+  patients     Patient[]
+  appointments Appointment[]
+  records      ClinicalRecord[]
+  finances     FinancialTransaction[]
+  leads        Lead[]
+  availabilityRules AvailabilityRule[]
+  blockedDates      BlockedDate[]
+  blockedSlots      BlockedSlot[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("therapist") // therapist, admin, secretary
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model Patient {
+  id           String    @id @default(cuid())
+  tenantId     String
+  name         String
+  phoneEnc     String    // Criptografado AES-256-GCM
+  emailEnc     String?   // Criptografado AES-256-GCM
+  cpfEnc       String?   // Criptografado AES-256-GCM
+  birthDate    DateTime?
+  status       String    @default("active") // active, inactive, archived
+  notes        String?   // Observações gerais não-clínicas
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  records      ClinicalRecord[]
+  finances     FinancialTransaction[]
+
+  @@index([tenantId])
+}
+
+model Appointment {
+  id          String   @id @default(cuid())
+  tenantId    String
+  patientId   String
+  scheduledAt DateTime
+  durationMin Int      @default(50)
+  status      String   @default("scheduled") // scheduled, confirmed, completed, cancelled, no_show
+  modality    String   @default("online")    // online, in_person
+  meetingUrl  String?
+  price       Float    @default(0.0)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  record      ClinicalRecord?
+  transaction FinancialTransaction?
+
+  @@index([tenantId, scheduledAt])
+  @@index([patientId])
+}
+
+model ClinicalRecord {
+  id            String   @id @default(cuid())
+  tenantId      String
+  patientId     String
+  appointmentId String?  @unique
+  sessionDate   DateTime @default(now())
+  rawDraftEnc   String?  // Rascunho criptografado AES-256-GCM
+  soapEnc       String   // JSON {subjective, objective, assessment, plan} criptografado
+  aiAssisted    Boolean  @default(false)
+  isLocked      Boolean  @default(false) // Travamento após conclusão (exigência ético-clínica)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient       Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, patientId])
+}
+
+model FinancialTransaction {
+  id            String    @id @default(cuid())
+  tenantId      String
+  patientId     String?
+  appointmentId String?   @unique
+  type          String    // income, expense
+  category      String    // consultation, package, rent, supervision, software
+  amount        Float     @default(0.0)
+  dueDate       DateTime
+  paidAt        DateTime?
+  status        String    @default("pending") // pending, paid, cancelled
+  paymentMethod String?   // pix, card, cash, transfer
+  description   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient       Patient?  @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, dueDate])
+  @@index([tenantId, status])
+}
+
+model Lead {
+  id            String   @id @default(cuid())
+  tenantId      String
+  name          String
+  phoneEnc      String   // Criptografado AES-256-GCM
+  emailEnc      String?  // Criptografado AES-256-GCM
+  demand        String?  // Queixa ou motivo da busca
+  preferredTime String?  // Manhã, Tarde, Noite
+  modality      String   @default("online") // online, in_person
+  stage         String   @default("new_lead") // new_lead, contacted, scheduled, converted, lost
+  source        String   @default("pagina_publica") // pagina_publica, instagram, indicacao
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, stage])
+}
+
+model AvailabilityRule {
+  id        String   @id @default(cuid())
+  tenantId  String
+  dayOfWeek Int      // 0 = Domingo, 1 = Segunda, 2 = Terça, 3 = Quarta, 4 = Quinta, 5 = Sexta, 6 = Sábado
+  enabled   Boolean  @default(true)
+  hours     String   // Horários separados por vírgula: "08:00,09:00,10:00,11:00,14:00,15:00,16:00,17:00"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, dayOfWeek])
+  @@index([tenantId])
+}
+
+model BlockedDate {
+  id        String   @id @default(cuid())
+  tenantId  String
+  date      String   // Formato YYYY-MM-DD (ex: "2026-12-25")
+  reason    String?  // Ex: "Feriado de Natal", "Folga", "Recesso de fim de ano"
+  createdAt DateTime @default(now())
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, date])
+  @@index([tenantId])
+}
+
+model BlockedSlot {
+  id        String   @id @default(cuid())
+  tenantId  String
+  date      String   // Formato YYYY-MM-DD
+  time      String   // Formato HH:mm (ex: "14:00")
+  reason    String?  // Ex: "Indisponibilizado manualmente"
+  createdAt DateTime @default(now())
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, date, time])
+  @@index([tenantId, date])
+}
+
+
+

@@ -1,0 +1,17 @@
+{
+  "name": "BEM — Plataforma do Terapeuta",
+  "short_name": "BEM",
+  "description": "Sistema integrado de gestão clínica, agenda, finanças e copiloto de IA para terapeutas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FBF9F5",
+  "theme_color": "#1F4D36",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
