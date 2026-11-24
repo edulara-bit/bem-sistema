@@ -1,9 +1,10 @@
-import { getTenantDb } from '@/lib/prisma';
+import { getTenantDb, prisma } from '@/lib/prisma';
 import { getCurrentTenant } from '@/lib/current-tenant';
 import { decryptText } from '@/lib/crypto';
 import { ProntuarioView } from './ProntuarioView';
 import { notFound } from 'next/navigation';
-import emotionsCatalog from '@/lib/emotions-data.json';
+import fs from 'fs';
+import path from 'path';
 
 export default async function ProntuarioPage({
   params,
@@ -16,7 +17,6 @@ export default async function ProntuarioPage({
   const { appointmentId } = await searchParams;
 
   const tenant = await getCurrentTenant();
-
   if (!tenant) return <div>Tenant não encontrado.</div>;
 
   const db = getTenantDb(tenant.id);
@@ -26,14 +26,56 @@ export default async function ProntuarioPage({
     notFound();
   }
 
-  // Descriptografa histórico para renderização
-  const history = patient.records.map((r: any) => {
+  // Busca emoções do banco ou do arquivo detalhado
+  let emotions = await prisma.emotion.findMany({
+    where: {
+      OR: [{ tenantId: tenant.id }, { tenantId: null }],
+    },
+    orderBy: [{ title: 'asc' }],
+  });
+
+  if (emotions.length === 0) {
+    try {
+      const jsonPath = path.join(process.cwd(), 'src/lib/emotions-detailed.json');
+      if (fs.existsSync(jsonPath)) {
+        emotions = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+      }
+    } catch (e) {
+      console.warn('Erro ao ler emotions-detailed.json:', e);
+    }
+  }
+
+  // Busca histórico de registros com agendamentos vinculados
+  const records = await prisma.clinicalRecord.findMany({
+    where: {
+      tenantId: tenant.id,
+      patientId: patient.id,
+    },
+    include: {
+      appointment: true,
+    },
+    orderBy: {
+      sessionDate: 'desc',
+    },
+  });
+
+  // Descriptografa histórico clínico completo
+  const history = records.map((r: any) => {
     let soap = { subjective: '', objective: '', assessment: '', plan: '' };
     try {
       const decryptedSoapStr = decryptText(r.soapEnc);
       soap = JSON.parse(decryptedSoapStr);
     } catch {
       soap = { subjective: 'Erro na leitura', objective: '', assessment: '', plan: '' };
+    }
+
+    let rawNotes = '';
+    if (r.rawDraftEnc) {
+      try {
+        rawNotes = decryptText(r.rawDraftEnc);
+      } catch {
+        rawNotes = '';
+      }
     }
 
     let emocoes: string[] = [];
@@ -55,8 +97,14 @@ export default async function ProntuarioPage({
         hour: '2-digit',
         minute: '2-digit',
       }),
+      rawNotes,
       soap,
       emocoesTrabalhadas: emocoes,
+      modality: r.appointment?.modality || patient.modalityPreference || 'online',
+      sessionType: r.appointment?.sessionType || patient.sessionTypePreference || 'regular',
+      status: r.appointment?.status || 'completed',
+      price: r.appointment?.price || 0,
+      appointmentNotes: r.appointment?.notes || null,
       aiAssisted: r.aiAssisted,
       isLocked: r.isLocked,
     };
@@ -64,10 +112,25 @@ export default async function ProntuarioPage({
 
   return (
     <ProntuarioView
-      patient={{ id: patient.id, name: patient.name, notes: patient.notes }}
+      patient={{
+        id: patient.id,
+        name: patient.name,
+        notes: patient.notes,
+        modalityPreference: patient.modalityPreference,
+        sessionTypePreference: patient.sessionTypePreference,
+        packageTotalSessions: patient.packageTotalSessions,
+        packageUsedSessions: patient.packageUsedSessions,
+      }}
       appointmentId={appointmentId}
       history={history}
-      emotionsCatalog={emotionsCatalog}
+      emotionsCatalog={emotions.map((e: any) => ({
+        id: e.id,
+        title: e.title,
+        description: e.description || '',
+        phrases: e.phrases || null,
+        code: e.code || e.letra || '',
+        type: e.type || e.tipo || 'Positiva',
+      }))}
     />
   );
 }

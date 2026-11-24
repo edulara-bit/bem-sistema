@@ -13,7 +13,8 @@ import {
   UserPlus,
   Settings,
   Target,
-  LogOut
+  LogOut,
+  Heart
 } from 'lucide-react';
 import clsx from 'clsx';
 import { TenantSwitcher } from './TenantSwitcher';
@@ -23,6 +24,7 @@ export const navItems = [
   { href: '/cockpit', label: 'Hoje', icon: LayoutDashboard },
   { href: '/agenda', label: 'Agenda', icon: Calendar },
   { href: '/pacientes', label: 'Pacientes & Prontuário', icon: Users },
+  { href: '/emocoes', label: 'Emoções & Bioenergética', icon: Heart },
   { href: '/captacao', label: 'Captação & Funil', icon: UserPlus },
   { href: '/financeiro', label: 'Financeiro', icon: DollarSign },
   { href: '/metas', label: 'Metas & Burnout', icon: Target },

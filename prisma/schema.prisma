@@ -37,6 +37,7 @@ model Tenant {
   whatsappReminder2hText String? // Mensagem do lembrete de 2h antes
 
   packages          Package[]
+  emotions          Emotion[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -241,6 +242,23 @@ model Package {
   tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
+}
+
+model Emotion {
+  id          String   @id @default(cuid())
+  tenantId    String?  // Opcional: nulo para globais do sistema, ou preenchido para customizadas pelo terapeuta
+  code        String?  // Ex: "A1", "A2", "B1"
+  title       String   // Ex: "Insegurança", "Segurança"
+  description String   // Texto explicativo e terapêutico completo da emoção
+  phrases     String?  // Frases de ancoragem / reflexão
+  type        String   // "Negativa" | "Positiva"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([title])
 }
 
 

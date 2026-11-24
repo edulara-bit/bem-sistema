@@ -1,0 +1,1122 @@
+[
+  {
+    "id": "4",
+    "title": "Insegurança",
+    "description": "A insegurança é um estado emocional que surge quando você não se sente bom o suficiente, duvida da sua capacidade para desafios e tem medo de arriscar. Compreenda que ela geralmente nasce da busca por aprovação externa. Ao reconhecer isso, você pode começar a desconstruir essa dependência e fortalecer sua verdade interior. Permita-se sentir essa insegurança, acolhendo-a como um sinal de que algo precisa de sua atenção e cuidado. Ao invés de lutar contra ela, use-a como um guia para descobrir a fonte do seu poder interno e a construir a autoconfiança que já reside em você.",
+    "phrases": null,
+    "letra": "A1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "5",
+    "title": "Segurança",
+    "description": "A verdadeira segurança significa que você não precisa depender da aprovação dos outros. É orientar-se de dentro para fora, sentindo-se capaz e suficiente, e construindo sua confiança na sua verdade interna. Confie em quem você é.",
+    "phrases": null,
+    "letra": "A1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "6",
+    "title": "Timidez",
+    "description": "A timidez aparece quando você tem dificuldade em ser autêntico, talvez por querer agradar ou por se preocupar demais com o que os outros pensam, o que o desconecta do seu próprio poder. Ela pode te impedir de sonhar grande, fazendo você se sentir incapaz ou insignificante. Permita-se ser quem você realmente é. Observe a timidez sem julgamento, entendendo que ela guarda uma parte sua que busca proteção. Ao acolhê-la, você pode gentilmente guiar-se para expressar sua essência, um passo de cada vez, reconectando-se com a sua voz interior.",
+    "phrases": null,
+    "letra": "A2",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "7",
+    "title": "Naturalidade",
+    "description": "A naturalidade é a sua capacidade de expressar a sua própria verdade e autenticidade, sem máscaras. É estar em pleno alinhamento com quem você realmente é, seguindo um caminho que flui com menor resistência e mais verdade.",
+    "phrases": null,
+    "letra": "A2",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "8",
+    "title": "Acomodação",
+    "description": "A acomodação é como viver numa zona de conforto que, apesar de cômoda, pode estagnar seu aprendizado e crescimento. Ela oferece uma falsa segurança, pois a vida está em constante mudança. Não deixe o medo de arriscar impedi-lo de viver seus sonhos. Reconheça a acomodação não como uma falha, mas como um convite à reflexão sobre o que verdadeiramente te move. Permita-se explorar os limites dessa zona de conforto, encontrando a motivação interna para expandir e viver a plenitude dos seus sonhos.",
+    "phrases": null,
+    "letra": "A3",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "9",
+    "title": "Motivação",
+    "description": "A motivação é a energia que o impulsiona a sair da zona de conforto e a perseguir seus objetivos. Lembre-se que ela deve nascer de razões internas, não externas. Cultive a disposição para aprender, mesmo com erros, para iniciar e manter os comportamentos que o levarão a cumprir suas metas.",
+    "phrases": null,
+    "letra": "A3",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "10",
+    "title": "Desânimo",
+    "description": "O desânimo é uma energia neutra que pode surgir quando você se sente menos criativo, revive o passado ou cria resistência. Ao reconhecer e trabalhar essa emoção, você abrirá espaço para novas oportunidades e para o seu poder criativo. Acolha o desânimo como um momento de pausa, um sinal de que sua energia precisa ser renovada e direcionada. Permita-se sentir, e então, com gentileza, busque as pequenas chamas que reacendem seu entusiasmo e sua capacidade de criar.",
+    "phrases": null,
+    "letra": "A4",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "11",
+    "title": "Entusiasmo",
+    "description": "O entusiasmo é uma energia expansiva, a ausência de resistência que impulsiona sua vida para frente. Agir com entusiasmo e aprender a equilibrá-lo pode ajudar a neutralizar desapontamentos passados, permitindo que sua energia flua em sua essência mais pura.",
+    "phrases": null,
+    "letra": "A4",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "12",
+    "title": "Derrota",
+    "description": "A derrota, embora muitas vezes vista de forma negativa, pode ser uma grande lição e necessária para certos aprendizados. Não se prenda a ela; em vez disso, observe os erros cometidos para tirar vantagens e evitar repeti-los no futuro. Olhe para a derrota não como um fim, mas como um professor silencioso. Permita-se acolher a dor do resultado, mas foque na força que surge ao analisar os caminhos percorridos, transformando cada \\\"não\\\" em um valioso \\\"próximo passo\\\".",
+    "phrases": null,
+    "letra": "A5",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "13",
+    "title": "Vitória",
+    "description": "A vitória é o sentimento de ser um vencedor, que surge ao reconhecer suas próprias conquistas (mesmo as pequenas) e ao superar suas limitações. A verdadeira vitória é aquela que você alcança sobre si mesmo, e isso exige coragem, disciplina e decisão.",
+    "phrases": null,
+    "letra": "A5",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "14",
+    "title": "Instabilidade",
+    "description": "A instabilidade se manifesta como a dificuldade de manter o equilíbrio diante de situações ou pessoas, deixando você se abalar facilmente e buscando a estabilidade em fatores externos. Ela pode levar a oscilações e dificultar a forma como você lida com as mudanças da vida. Sinta a instabilidade como o balançar natural da vida, um convite para você desenvolver sua própria âncora interna. Ao invés de lutar contra ela, permita-se encontrar seu centro no movimento, compreendendo que o equilíbrio é dinâmico e reside dentro de você.",
+    "phrases": null,
+    "letra": "A6",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "15",
+    "title": "Estabilidade",
+    "description": "A estabilidade é a sua capacidade de encontrar equilíbrio mesmo após um desequilíbrio, mantendo-se constante. Embora a falta de estabilidade no passado ou presente possa interferir, entenda que este é um caminho de aprendizado para despertar todas as suas possibilidades de expressão.",
+    "phrases": null,
+    "letra": "A6",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "16",
+    "title": "Vítima",
+    "description": "Quando você se sente vítima, tende a reagir às situações da vida, acreditando que não tem escolha e culpando os outros ou as circunstâncias pelos seus problemas, sentindo-se desamparado. Entenda que este comportamento muitas vezes é um resultado de condicionamentos. Acolha a emoção de se sentir vítima com compaixão, reconhecendo que ela surge de um lugar de dor. Ao invés de se prender à culpa externa, permita-se tomar consciência dessa dinâmica e comece a descobrir o poder que você tem para responder e co-criar sua realidade.",
+    "phrases": null,
+    "letra": "A7",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "17",
+    "title": "Responsabilidade",
+    "description": "A responsabilidade é a sua habilidade de responder proativamente às situações (em vez de apenas reagir), fazendo escolhas conscientes baseadas nos seus valores. Agir como observador do seu próprio destino significa discernir o que é sua responsabilidade e o que é do outro, impulsionando uma mudança de dentro para fora.",
+    "phrases": null,
+    "letra": "A7",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "18",
+    "title": "Apreensão",
+    "description": "A apreensão é uma expectativa negativa, frequentemente ligada a desapontamentos passados. Ela se manifesta como o medo de que algo ruim se repita, o que pode levar à procrastinação e limitar a sua expressão. Reconheça essa emoção para transformá-la. Sinta a apreensão como um alerta gentil da sua mente, um eco do passado que busca protegê-lo. Ao acolhê-la, você pode investigar a origem desse medo, permitindo que a coragem de agir, mesmo com incerteza, o guie para novas experiências e resultados.",
+    "phrases": null,
+    "letra": "A8",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "19",
+    "title": "Coragem",
+    "description": "A coragem não é a ausência de medo, mas a capacidade de agir apesar dele. É quando você conecta seu coração às suas ações, superando os temores para alcançar a felicidade. Confie em si mesmo e siga em frente.",
+    "phrases": null,
+    "letra": "A8",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "20",
+    "title": "Escassez",
+    "description": "A mentalidade de escassez reflete a crença de que não há o suficiente para todos, gerando medo, culpa e a tendência à comparação e competição. Ela limita sua capacidade de reconhecer o sucesso alheio e seu próprio senso de valor. Reconheça esses padrões para se libertar. Perceba a sensação de escassez como um ponto de partida para cultivar a gratidão pelo que você já possui. Ao invés de focar na falta, permita-se abrir para a abundância presente em sua vida e na troca generosa com o mundo ao seu redor.",
+    "phrases": null,
+    "letra": "A9",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "21",
+    "title": "Abundância",
+    "description": "A abundância nasce de um profundo valor pessoal e segurança, afirmando que há o bastante para todos. Ela o incentiva a compartilhar, abre portas para novas possibilidades e libera a sua criatividade, criando um ambiente de interação mutuamente benéfica. Para cultivá-la, é fundamental tratar emoções como indiferença, indecisão, dúvida, preocupação, timidez e pessimismo.",
+    "phrases": null,
+    "letra": "A9",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "22",
+    "title": "Imperfeição",
+    "description": "A imperfeição se manifesta na dificuldade de aceitar as situações como elas são, levando você a buscar constantemente algo diferente ou \\\"melhor\\\". É uma percepção de defeito ou incompletude que pode impedir seu alinhamento com a realidade presente e gerar estresse. Acolha a percepção de imperfeição como um aspecto da sua jornada humana. Ela não é um defeito, mas uma parte do processo de crescimento. Permita-se soltar a necessidade de controle e abrace a beleza do seu ser, exatamente como você é agora, reconhecendo que a perfeição reside na aceitação.",
+    "phrases": null,
+    "letra": "A1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "23",
+    "title": "Perfeição",
+    "description": "A perfeição é o que já existe; é a sua capacidade de aceitar tudo como é, sem a necessidade de controle ou de que as coisas sejam diferentes. Entenda que o perfeccionismo é, na verdade, uma busca incessante por falhas, em vez de reconhecer a perfeição inerente ao processo da vida e à sua própria evolução.",
+    "phrases": null,
+    "letra": "A1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "24",
+    "title": "Preocupação",
+    "description": "A preocupação é um mau uso da mente, uma \\\"pré-ocupação\\\" com cenários negativos que ainda não aconteceram. Ela pode revelar uma falta de fé e confiança no processo da vida, impedindo sua mente de ser usada para a criatividade e a busca de soluções. Sinta a preocupação como um convite para trazer sua mente de volta ao presente. Ao invés de projetar futuros temidos, permita-se direcionar essa energia para a criatividade e a busca de soluções, confiando que você possui os recursos para lidar com o que vier.",
+    "phrases": null,
+    "letra": "B1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "25",
+    "title": "Esperança",
+    "description": "A esperança, em sua forma equilibrada, é a convicção de que o melhor está por vir, sem o apego a resultados específicos. Ela envolve otimismo, fé e a profunda compreensão de que tudo o que acontece é exatamente o que deveria acontecer para o seu crescimento.",
+    "phrases": null,
+    "letra": "B1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "26",
+    "title": "Impaciência",
+    "description": "A impaciência é caracterizada pela sensação de falta de tempo, pressa e imediatismo, revelando uma ausência de confiança no fluxo natural das coisas. É a necessidade de fazer com que algo aconteça \\\"agora\\\", o que pode impedir que você reavalie suas prioridades com clareza. Acolha a impaciência como um desejo ardente de progredir, mas também como um lembrete para se realinhar com o ritmo da vida. Permita-se respirar e encontrar a sabedoria de que o tempo certo para cada coisa se revela no desapego do controle e na confiança no processo.",
+    "phrases": null,
+    "letra": "B2",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "27",
+    "title": "Paciência",
+    "description": "A paciência não é passividade, mas sim o controle da sua própria energia e a sabedoria de esperar o tempo certo para que as coisas se manifestem. Ela o ajuda a compreender que o crescimento e a concretização dos seus desejos demandam tempo e dedicação.",
+    "phrases": null,
+    "letra": "B2",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "28",
+    "title": "Infelicidade",
+    "description": "A infelicidade é um sentimento duradouro de frustração que surge quando você coloca a responsabilidade pela sua própria felicidade em fatores externos – seja em pessoas, situações ou na busca por algo que parece sempre fora de alcance. Permita acolher esta emoção e senti-la somente pelo tempo necessário para que ela se dissolva e revele uma lição preciosa para que você desperte para busca da felicidade dentro de você mesmo. A verdadeira felicidade começa de dentro para fora.",
+    "phrases": null,
+    "letra": "B3",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "29",
+    "title": "Gratidão",
+    "description": "A gratidão é uma emoção de alta energia que o permite reconhecer a suficiência no que você já tem, encontrando o \\\"ouro\\\" em todas as situações. Ela abrange o reconhecimento das bênçãos e de todas as experiências vividas, transformando profundamente a sua percepção da vida.",
+    "phrases": null,
+    "letra": "B3",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "30",
+    "title": "Irritação",
+    "description": "A irritação é um sinal claro de que gatilhos emocionais foram ativados. Veja-a como uma valiosa oportunidade para o autoconhecimento, um convite para você olhar para si mesmo em vez de focar no que aparentemente causa a irritação. É um indicativo de que algo precisa ser percebido e trabalhado internamente. Ao invés de reprimir a irritação, permita-se senti-la e observe o que ela tenta lhe mostrar sobre seus próprios limites e necessidades. Use-a como uma bússola interna para cultivar a serenidade e a clareza em suas reações.",
+    "phrases": null,
+    "letra": "B4",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "31",
+    "title": "Serenidade",
+    "description": "A serenidade é a sua capacidade de expressar suavidade e manter o equilíbrio emocional mesmo diante de conflitos e adversidades. É não se deixar abalar por fatores externos, manifestando-se como tranquilidade, plenitude e discernimento.",
+    "phrases": null,
+    "letra": "B4",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "32",
+    "title": "Imoralidade",
+    "description": "A imoralidade pode surgir como a sensação de quebrar regras ou padrões culturais/familiares, ou o julgamento de pessoas/situações como \\\"erradas\\\". Entenda que a moralidade é subjetiva e muitas vezes rígida; a libertação dessa emoção vem do perdão e da aceitação do que aconteceu como parte do seu aprendizado. Quando confrontado com o que parece ser \\\"imoral\\\", permita-se acolher a confusão e a necessidade de categorizar. Busque a sua própria bússola interna, aquela que o guia com integridade e amor, além dos julgamentos externos.",
+    "phrases": null,
+    "letra": "B5",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "33",
+    "title": "Moralidade",
+    "description": "A moralidade é a sua bússola interna, que deve guiar suas próprias ações e interpretações. Ela o ajuda a viver sem se prender ao julgamento alheio sobre o \\\"certo\\\" ou \\\"errado\\\", que pode gerar desequilíbrio e interferência.",
+    "phrases": null,
+    "letra": "B5",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "34",
+    "title": "Ganância",
+    "description": "A ganância é um desequilíbrio que se manifesta como um vazio interno e a sensação de que sempre está faltando algo. Isso pode levá-lo à necessidade de ter mais do que o necessário e a focar exclusivamente nos seus próprios interesses, impedindo o desenvolvimento de um interesse genuíno pelos outros. Reconheça a ganância como um sinal de um vazio que busca preenchimento externo. Permita-se olhar para dentro, acolher essa falta e descobrir a riqueza da generosidade e do contentamento, encontrando a verdadeira abundância em compartilhar e se conectar.",
+    "phrases": null,
+    "letra": "B6",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "35",
+    "title": "Generosidade",
+    "description": "A generosidade é a sua virtude de compartilhar por bondade, sem esperar retorno. Ela é um sinal de abundância que transborda de você, não se limitando a bens materiais, mas incluindo o compartilhamento de conhecimento, reconhecimento e vitórias.",
+    "phrases": null,
+    "letra": "B6",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "36",
+    "title": "Obsessão",
+    "description": "A obsessão é um foco intenso e contínuo em uma única direção. Embora possa trazer resultados rápidos em metas, torna-se um problema se perpetuar, desequilibrando sua experiência de vida ao negligenciar outras áreas importantes. Ao sentir a obsessão, permita-se reconhecer a intensidade de sua energia. Em vez de se deixar consumir, direcione esse foco com sabedoria, cultivando o autocontrole para equilibrar suas paixões e honrar todas as áreas da sua vida.",
+    "phrases": null,
+    "letra": "B7",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "37",
+    "title": "Autocontrole",
+    "description": "O autocontrole é o seu esforço consciente para superar impulsos indesejados. Mais crucialmente, é a compreensão de que o único controle real que você tem é sobre a sua própria resposta às situações e a perspectiva de como você escolhe enxergar as circunstâncias.",
+    "phrases": null,
+    "letra": "B7",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "38",
+    "title": "Exigência",
+    "description": "A exigência é caracterizada pela tentativa de forçar que as coisas ou as pessoas sejam do seu jeito e no seu tempo, o que revela uma falta de confiança, equilíbrio e harmonia. Entenda que essa energia não é sustentável, e que exigir algo de alguém pode fazer você perder o presente que a pessoa está oferecendo. Quando a exigência surgir, acolha-a como um convite para examinar sua necessidade de controle. Permita-se soltar as expectativas rígidas e abraçar a compreensão de que cada um tem seu próprio ritmo e processo, abrindo espaço para a harmonia e a aceitação.",
+    "phrases": null,
+    "letra": "B8",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "39",
+    "title": "Compreensão",
+    "description": "A compreensão é a sua capacidade de aceitar as opiniões e atitudes dos outros sem levar para o lado pessoal ou julgar. Ela o permite viver e deixar viver, criando espaço para os outros e entendendo que cada um está fazendo o melhor com o nível de consciência que possui.",
+    "phrases": null,
+    "letra": "B8",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "40",
+    "title": "Fome",
+    "description": "A fome não é apenas física, mas também espiritual e emocional, representando a crença de não ter o bastante ou de não estar satisfeito. É um vazio, uma vibração de falta. A solução é cultivar o entendimento de que tudo é perfeito em cada situação, permitindo-se nutrir em todos os níveis. Ao sentir essa fome profunda, permita-se acolhê-la como um chamado para nutrir-se de dentro para fora. Não ignore o vazio, mas explore-o com curiosidade, descobrindo o que realmente o preenche e o leva à saciedade em todos os aspectos da sua vida.",
+    "phrases": null,
+    "letra": "B9",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "41",
+    "title": "Saciedade",
+    "description": "A saciedade é o sentimento de suficiência e satisfação completa, de não precisar de mais nada. É o contentamento profundo que surge da realização de um desejo ou necessidade, sentindo-se preenchido e em paz.",
+    "phrases": null,
+    "letra": "B9",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "42",
+    "title": "Insensibilidade",
+    "description": "A insensibilidade pode ser uma desconexão da sua própria essência, frequentemente suprimida para evitar dor profunda, traumas ou julgamentos. É a dificuldade de perceber seu ambiente interno e externo, e pode levá-lo a julgar os outros como frios. Reconheça a insensibilidade como uma defesa, um escudo que você ergueu para se proteger. Acolha essa necessidade de proteção, e então, com gentileza, permita-se gradualmente baixar as barreiras, abrindo-se para a sua própria sensibilidade e para a conexão com o mundo.",
+    "phrases": null,
+    "letra": "B1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "43",
+    "title": "Sensibilidade",
+    "description": "A sensibilidade é a sua capacidade de sentir, tanto o que ocorre no ambiente quanto dentro de si. Saiba que ser sensível é um dom. Perdoe qualquer desequilíbrio (insensibilidade, excesso de sensibilidade ou dificuldade com a sensibilidade alheia) para permitir uma conexão mais profunda com sua voz interior e com as pessoas.",
+    "phrases": null,
+    "letra": "B1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "44",
+    "title": "Raiva",
+    "description": "A raiva é um resultado do seu desejo de controle, manifestando-se quando as circunstâncias não fluem como você gostaria. É uma energia intensa que, se não for permitida e sentida, pode ficar armazenada em você, mantendo-o em estado de luta ou fuga. Permita que ela se expresse para que possa ser dissolvida pela sua presença consciente. Ao invés de reprimir a raiva, permita-se acolhê-la como um mensageiro poderoso de que algo precisa ser transformado. Sinta a intensidade, mas não se deixe dominar; use-a para encontrar a calma interior e para direcionar essa energia para mudanças construtivas.",
+    "phrases": null,
+    "letra": "C1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "45",
+    "title": "Calma",
+    "description": "A calma é a sua capacidade de trazer a paz para o seu interior, independentemente do caos externo. É respirar a calma no meio do turbilhão da vida, permitindo que uma verdadeira paz surja de dentro de você.",
+    "phrases": null,
+    "letra": "C1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "46",
+    "title": "Orgulho",
+    "description": "O orgulho pode se manifestar em dois extremos: o excessivo (egocêntrico, sempre certo, achando que sabe tudo) ou a falta (pouco orgulho de si, não aceitando quem você é, sentindo-se sem apoio). Busque um orgulho humilde, um equilíbrio que reconheça seu valor sem a necessidade de superioridade. Observe o orgulho como uma bússola que aponta para sua autoestima. Seja o orgulho excessivo ou a sua ausência, acolha-o como um convite para encontrar o equilíbrio na humildade, valorizando-se com autenticidade e reconhecendo a grandeza em todos.",
+    "phrases": null,
+    "letra": "C2",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "47",
+    "title": "Humildade",
+    "description": "A humildade é o reconhecimento dos seus próprios limites, sem que isso o faça abandonar sonhos ou desistir de aprender. Ela implica em submeter-se aos princípios naturais da vida, agindo conforme as suas leis para alcançar os seus objetivos de forma mais harmoniosa.",
+    "phrases": null,
+    "letra": "C2",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "48",
+    "title": "Egoísmo",
+    "description": "O sentimento de egoísmo precisa ser resignificado para que você não o veja como algo negativo. Ele é necessário, muitas vezes, para que você olhe para si primeiramente, se fortalecendo e se tornando autorresponsável pela sua felicidade. Ao se autocapacitar, você estará pronto para transbordar para outras pessoas. Acolha o egoísmo em sua essência de autocuidado e autorresponsabilidade. Permita-se nutrir suas próprias necessidades e força interior, sem culpa, sabendo que é a partir desse lugar de plenitude que você poderá, verdadeiramente, contribuir e transbordar para o mundo.",
+    "phrases": null,
+    "letra": "C3",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "49",
+    "title": "Altruísmo",
+    "description": "O altruísmo é a sua dedicação sincera ao bem do outro. Ele surge da sua responsabilidade e solidariedade, sem esperar nada em troca. É a sua capacidade de se colocar no lugar do outro sem julgamento, agindo com o coração para apoiar e cuidar.",
+    "phrases": null,
+    "letra": "C3",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "50",
+    "title": "Vergonha",
+    "description": "A vergonha é um sentimento profundo de inadequação, de que há algo \\\"errado\\\" com você ou que você é culpado. É um distanciador silencioso e, muitas vezes, inconsciente, que o impede de reconhecer a sua própria grandeza. A solução reside no perdão e no amor por si mesmo. Quando a vergonha se manifestar, permita-se acolhê-la com gentileza, sem se identificar com ela. Sinta-a como uma parte de sua jornada que o convida ao autoperdão e ao amor incondicional, relembrando-o da dignidade e da grandeza que você já possui.",
+    "phrases": null,
+    "letra": "C4",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "51",
+    "title": "Dignidade",
+    "description": "A dignidade é sentir-se merecedor e íntegro, agindo com honestidade consigo mesmo e com os outros. É o seu amor-próprio que inspira respeito, lembrando que a coragem é a dignidade manifestada sob pressão.",
+    "phrases": null,
+    "letra": "C4",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "52",
+    "title": "Ofensa",
+    "description": "A ofensa é uma perspectiva que surge quando você coloca seu poder no mundo externo, sentindo-se ferido por comportamentos alheios ou tornando-se ofensivo para com os outros. Para sair dessa vibração, permita que ela se expresse para que possa ser dissolvida pela sua presença consciente. Ao sentir a ofensa, acolha a dor que ela traz, mas observe onde você entregou seu poder. Permita-se sentir e dissolver essa emoção, resgatando a honra de sua própria integridade e escolhendo não se abalar pelas ações externas.",
+    "phrases": null,
+    "letra": "C5",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "53",
+    "title": "Honra",
+    "description": "A honra é um conjunto de valores pessoais que inspira respeito próprio e alheio. É sentir que você respeita os seus próprios compromissos e verdades, agindo com honestidade, dignidade e valentia, e sendo digno de confiança.",
+    "phrases": null,
+    "letra": "C5",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "54",
+    "title": "Revolta",
+    "description": "A revolta surge quando as coisas não acontecem como você quer, alimentando a ilusão de vitimização, de falta de apoio ou de que os outros o prejudicam. É um sinal de que há um \\\"vilão\\\" na sua narrativa pessoal. Questione o que você ganha ao se sentir assim e agradeça pelas situações que o despertam para o seu poder. Permita-se sentir a revolta como um poderoso impulso de indignação, mas use-o para questionar a narrativa de vitimização. Acolha essa energia e a transforme em um desejo de satisfação, assumindo seu papel de criador da sua realidade.",
+    "phrases": null,
+    "letra": "C6",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "55",
+    "title": "Satisfação",
+    "description": "A satisfação é sentir-se saciado, pleno e em paz com o presente. Se você tem dificuldade em senti-la devido a padrões subconscientes de falta, permita que a satisfação se renove e se expresse plenamente em sua vida.",
+    "phrases": null,
+    "letra": "C6",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "56",
+    "title": "Preso",
+    "description": "Sentir-se preso significa não conseguir avançar, empacado, refém de ideias, crenças ou experiências do passado, como se estivesse enjaulado. Reconheça essas amarras para poder se libertar. Acolha a sensação de estar preso como um convite para examinar as crenças e padrões que o aprisionam. Permita-se investigar o que o impede de avançar, e então, com gentileza, comece a construir seu caminho em direção à liberdade, um passo de cada vez.",
+    "phrases": null,
+    "letra": "C7",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "57",
+    "title": "Liberdade",
+    "description": "A liberdade é sentir-se leve, independente, sem amarras e pesos, com a possibilidade de fazer escolhas orientadas pela sua própria vontade, livre de padrões inconscientes. Saiba que, paradoxalmente, quanto maior a disciplina em praticar algo que gera bons resultados, mais rápido você encontra a sua verdadeira liberdade.",
+    "phrases": null,
+    "letra": "C7",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "58",
+    "title": "Desonestidade",
+    "description": "A desonestidade é a recusa em resolver uma situação, a não aceitação de que algo serviu a um propósito, ou a não expressão da sua própria verdade. É mudar a percepção sobre si devido a fatores externos, ou saber algo e não permitir que isso seja verdade. Permita que a honestidade tome conta de você, perdoando qualquer tendência em reter a verdade. Quando a desonestidade surgir, seja consigo ou com os outros, acolha-a como um espelho que reflete onde sua verdade precisa ser mais plenamente vivida. Permita-se perdoar a si mesmo por qualquer desvio e escolha o caminho da honestidade, pois ela é a base da sua integridade.",
+    "phrases": null,
+    "letra": "C8",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "59",
+    "title": "Honestidade",
+    "description": "A honestidade é ser verdadeiro consigo mesmo e com os outros, agindo com integridade em relação às suas próprias vontades e sentimentos, sem a necessidade de manter uma imagem. A capacidade de viver pela verdade é a força de cura mais poderosa.",
+    "phrases": null,
+    "letra": "C8",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "60",
+    "title": "Incapacidade",
+    "description": "A incapacidade é o sentimento de não dar conta de uma situação, de não reconhecer o seu próprio poder, o que pode levá-lo a uma postura de vítima em vez de criador. Ela é causada pela insegurança e pode impedir seu crescimento e a sua disposição para arriscar. Supere essa ilusão com treino, repetição e aceitação do processo, arriscando mais na direção dos seus sonhos. Ao sentir a incapacidade, acolha essa sensação como um ponto de partida, não como um veredito. Permita-se reconhecer os recursos que você já possui e os que pode desenvolver, transformando essa emoção em um trampolim para sua capacidade e crescimento.",
+    "phrases": null,
+    "letra": "C9",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "61",
+    "title": "Capacidade",
+    "description": "A capacidade é o sentimento de ter tudo o que você precisa para realizar suas metas, expressar seu máximo potencial sem medo, e a habilidade de aprender e mudar. Reconheça o seu poder de criar a sua própria realidade.",
+    "phrases": null,
+    "letra": "C9",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "62",
+    "title": "Inferioridade",
+    "description": "A inferioridade surge da comparação com os outros, gerando a sensação de estar \\\"abaixo\\\", sem capacidade, e com culpa ou julgamento. Pode ser resultado de críticas excessivas na infância. Não se sinta inferior, mas desenvolva a humildade para reconhecer seus potenciais e limitações, comparando-se apenas com a versão que você deseja ser e assumindo o poder de criar a sua própria realidade. Acolha o sentimento de inferioridade sem julgamento, observando-o como um lembrete de que sua comparação mais importante é com a versão mais elevada de si mesmo. Permita-se nutrir sua autoestima e sua compostura interna, reconhecendo seu valor intrínseco e sua singularidade.",
+    "phrases": null,
+    "letra": "C1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "63",
+    "title": "Compostura",
+    "description": "A compostura é a sua capacidade de permanecer alinhado com o seu eu autêntico, sem abandoná-lo pelo que seria \\\"melhor recebido\\\" pelo ambiente. A verdadeira compostura é manter-se alinhado com o seu eu superior, com graça e facilidade, expressando essa verdade interna.",
+    "phrases": null,
+    "letra": "C1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "64",
+    "title": "Manipulação",
+    "description": "A manipulação é uma tentativa de controle, tanto sobre si mesmo quanto sobre os outros, muitas vezes como uma compensação por ter sido manipulado ou por ter tido pais rígidos na infância. O perdão é possível ao identificar esses momentos de controle e perceber que o verdadeiro poder está em como você se sente, não em quem está no comando externo. Quando perceber a manipulação, seja em si ou nos outros, acolha-a como um pedido de poder e segurança. Permita-se perdoar as raízes desse comportamento e buscar a verdadeira permissão para ser e agir a partir de um lugar de amor e liberdade.",
+    "phrases": null,
+    "letra": "D1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "65",
+    "title": "Permissão",
+    "description": "A permissão é o poder que você tem de seguir adiante e viver plenamente, independentemente das circunstâncias. É amar e arriscar mesmo com medo. Permita-se perdoar qualquer interferência que impeça seu autodesenvolvimento e também permita que os outros sejam quem realmente são.",
+    "phrases": null,
+    "letra": "D1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "66",
+    "title": "Remorso",
+    "description": "O remorso é um arrependimento prolongado, um sentimento de que algo \\\"errado\\\" ou \\\"ruim\\\" aconteceu e não deveria ter ocorrido. A libertação vem de perdoar a ilusão de que algo não deveria ter sido como foi, compreendendo que há um presente ou uma lição em cada experiência. Sinta o remorso, mas não se prenda a ele. Acolha essa emoção como um sinal de que sua consciência está evoluindo, e então, permita-se o perdão. Veja-o como um convite para liberar o passado e usar a sabedoria adquirida para construir um presente e futuro mais alinhados.",
+    "phrases": null,
+    "letra": "D2",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "67",
+    "title": "Perdão",
+    "description": "O perdão é o seu ato de autoperdão e libertação. É tirar a consciência de algo, transmutando ressentimentos e mudando comportamentos. Não significa necessariamente concordar com o outro, mas sim libertar-se emocionalmente da situação.",
+    "phrases": null,
+    "letra": "D2",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "68",
+    "title": "Arrependimento",
+    "description": "O arrependimento é descrito como uma vibração que pode impedi-lo de avançar, como se não permitisse que sua história fosse completada. Embora seja normal senti-lo e aprender com ele, é crucial liberá-lo, reconhecendo que tudo é perfeito e uma oportunidade de despertar. Acolha o arrependimento como um mensageiro do seu aprendizado. Permita-se sentir essa emoção, extrair dela a lição necessária e, então, liberá-la para que você possa avançar com a gratificação de ter crescido e evoluído.",
+    "phrases": null,
+    "letra": "D3",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "69",
+    "title": "Gratificação",
+    "description": "A gratificação é uma forma de reconhecimento, a sensação de ser grato e sentir-se recompensado. Pratique a conexão com essa sensação para reconhecê-la e elevar sua experiência de vida, lembrando que a verdadeira gratificação vai além do que é instantâneo.",
+    "phrases": null,
+    "letra": "D3",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "70",
+    "title": "Rejeição",
+    "description": "A rejeição pode ser um ato de empurrar para longe ou de se sentir empurrado, um desprezo doloroso que, no entanto, serve para despertar uma nova consciência. Em relacionamentos, pode indicar falta de similaridade de frequência, e não deve ser levada para o lado pessoal. Quando sentir a rejeição, permita-se acolher a dor, mas observe-a sem se apegar ao drama. Entenda que ela pode ser um convite para você voltar-se para si mesmo, aceitar quem você é plenamente e construir sua própria validação interna.",
+    "phrases": null,
+    "letra": "D4",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "71",
+    "title": "Aceitação",
+    "description": "A aceitação é essencial: é aceitar que tudo acontece para você, e não apenas \\\"com\\\" você, vivendo sem criar interferências futuras. É aceitar a si mesmo, o que os outros apresentam (mesmo a resistência), e cada pensamento e sentimento amorosamente para dissolver problemas subconscientes.",
+    "phrases": null,
+    "letra": "D4",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "72",
+    "title": "Abandono",
+    "description": "O abandono surge da conexão excessiva ou codependência com algo ou alguém, tirando o seu poder pessoal. Abrace esse sentimento e entenda que as circunstâncias são perfeitas para o seu despertar, compreendendo que você criou essas situações para aprender a se amar e a estar presente para si. Sinta o abandono como um eco de uma necessidade profunda de conexão consigo mesmo. Ao invés de buscar preencher essa lacuna externamente, permita-se acolher essa emoção e usá-la como um portal para a autoconexão, fortalecendo sua convicção interna de ser completo e suficiente.",
+    "phrases": null,
+    "letra": "D5",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "73",
+    "title": "Convicção",
+    "description": "A convicção é a sua capacidade de manter a firmeza nas suas próprias escolhas, independentemente de resultados externos. Cultive-a internamente, em sua decisão de seguir um caminho, e não em fatores externos que podem comprometer sua força quando as expectativas não se realizam.",
+    "phrases": null,
+    "letra": "D5",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "74",
+    "title": "Traição",
+    "description": "A traição é interpretada como uma infidelidade à sua própria integridade, não se limitando a relacionamentos românticos, mas incluindo a traição a si mesmo ou a um compromisso. Permita-se perdoar e liberar essa emoção para que ela sirva ao seu empoderamento e autoaprovação. Quando a traição surgir, acolha a dor e a desilusão que ela traz. Permita-se sentir, mas use essa experiência como um poderoso catalisador para reafirmar sua fidelidade a si mesmo, aos seus valores e à sua integridade, fortalecendo sua base interna.",
+    "phrases": null,
+    "letra": "D6",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "75",
+    "title": "Fidelidade",
+    "description": "A fidelidade é a lealdade a si mesmo, aos outros e aos seus próprios princípios. É agir com a certeza de que você já possui o que deseja, mantendo-se firme nas ações e na direção da manifestação, independentemente das circunstâncias externas.",
+    "phrases": null,
+    "letra": "D6",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "76",
+    "title": "Desilusão",
+    "description": "A desilusão é a perda de esperanças ou a decepção com algo ou alguém, o \\\"deixar de possuir as ilusões\\\". É um desapontamento que, embora doloroso, pode ser um catalisador para uma nova percepção e para o seu crescimento. Permita-se sentir a desilusão como o fim de uma fantasia, um convite para você enxergar a realidade com mais clareza. Ao invés de se prender à decepção, use-a como um portal para uma nova percepção, liberando o que não serve mais e abrindo espaço para a verdade.",
+    "phrases": null,
+    "letra": "D7",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "77",
+    "title": "Claridade",
+    "description": "A claridade é ter pensamentos e sentimentos congruentes. É a sua capacidade de enxergar desafios com luz e entender a direção certa a seguir para alcançar seus objetivos, com total transparência e limpidez.",
+    "phrases": null,
+    "letra": "D7",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "78",
+    "title": "Ciúme",
+    "description": "O ciúme é como a inveja, uma energia que surge da crença de que você não pode ter o que o outro tem, ou da não aceitação da sua própria grandeza. O ciúme pode ser um mensageiro, um alerta de que o que você vê no outro já existe em potencial dentro de você. Use essa emoção para aceitar e abraçar essa parte de si. Ao sentir ciúme, acolha essa emoção como um espelho que reflete um potencial adormecido em você. Permita-se sentir, mas redirecione essa energia para o autoconhecimento, usando-a como um convite para desenvolver e celebrar a sua própria realização.",
+    "phrases": null,
+    "letra": "D8",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "79",
+    "title": "Realização",
+    "description": "A realização é o sentimento de satisfação por um projeto concluído ou a capacidade de realizar coisas. Incentive-se a contemplar a ideia de que a realização é possível e pratique regularmente esse sentimento para reconhecer quando seus desejos estão se concretizando.",
+    "phrases": null,
+    "letra": "D8",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "80",
+    "title": "Mal-Amado",
+    "description": "O sentimento de mal-amado é uma ilusão que surge da não aceitação do verdadeiro amor que reside em você, levando ao isolamento e à desconexão. Entenda que o amor é inato, e buscar o amor fora é um engano. É uma oportunidade para você levar o amor para si mesmo primeiro. Quando a sensação de ser mal-amado surgir, acolha-a como um chamado para redirecionar seu amor para dentro. Permita-se preencher seu próprio ser com o amor que você já possui, cultivando a certeza de que você é querido e amado, começando por você mesmo.",
+    "phrases": null,
+    "letra": "D9",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "81",
+    "title": "Querido",
+    "description": "O sentimento de querido é sentir-se amado, aceitar o amor que existe dentro de si e não esperar que ele venha de fora. É um convite para amar e aceitar-se plenamente, e, a partir desse amor-próprio, querer bem aos outros.",
+    "phrases": null,
+    "letra": "D9",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "82",
+    "title": "Solidão",
+    "description": "A solidão é um padrão emocional que pode levá-lo ao isolamento e à separação, mas pode ser ressignificada como um momento para introspecção e contemplação da sua própria intimidade. Você tem controle sobre como se sente quando está sozinho, podendo escolher dar boas-vindas a esse momento. Acolha a solidão não como uma carência, mas como um espaço sagrado para a introspecção e o autodescobrimento. Permita-se estar presente consigo mesmo, transformando essa emoção em uma oportunidade para cultivar uma profunda conexão interna e encontrar a plenitude em sua própria companhia.",
+    "phrases": null,
+    "letra": "D1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "83",
+    "title": "Presença",
+    "description": "A presença é a sua capacidade de estar onde você está, no agora, conectado com a vida e em plenitude. É perceber o que acontece sem julgar, dissolvendo a necessidade de criar histórias e preencher lacunas com o que não se sabe, buscando uma interpretação neutra da experiência de vida.",
+    "phrases": null,
+    "letra": "D1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "84",
+    "title": "Enganação",
+    "description": "A enganação é sentir-se traído ou ferido, ou enganar-se a si mesmo e aos outros, muitas vezes por não conseguir lidar com a verdade. Reconheça esses padrões e busque a verdade em si. Quando a enganação se manifestar, seja por você ou pelos outros, acolha a dor e a confusão que ela gera. Permita-se confrontar a verdade, por mais desconfortável que seja, e use-a como um portal para fortalecer sua lealdade a si mesmo e aos seus princípios mais elevados.",
+    "phrases": null,
+    "letra": "E1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "85",
+    "title": "Lealdade",
+    "description": "A lealdade começa internamente, sendo leal a si mesmo antes de tudo. A lealdade verdadeira vem do coração e se reflete nas suas ações, fortalecendo seu ser. Perdoe qualquer interferência que tire sua integridade e permita que a lealdade floresça.",
+    "phrases": null,
+    "letra": "E1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "86",
+    "title": "Frustração",
+    "description": "A frustração é um sinal de que você pode estar tentando controlar algo ou indo contra a correnteza, e que as coisas não precisam ser tão difíceis. Ela pode impedir sua mudança e a capacidade de encontrar prazer no que você faz. Desprenda-se do resultado e da rigidez, permitindo que o inesperado possa ser ainda melhor. Acolha a frustração como um alerta gentil de que talvez você esteja resistindo ao fluxo natural da vida. Permita-se soltar a necessidade de controle e, com compaixão por si, abra o coração para novas perspectivas, encontrando prazer e fluidez no processo.",
+    "phrases": null,
+    "letra": "E2",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "87",
+    "title": "Compaixão",
+    "description": "A compaixão é a compreensão de que cada indivíduo está fazendo o melhor que pode. É viver e deixar viver, amar e deixar ser amado, movendo-se sem julgamento. É uma ferramenta poderosa para reinterpretar situações e encontrar a sua paz interior.",
+    "phrases": null,
+    "letra": "E2",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "88",
+    "title": "Alienação",
+    "description": "A alienação é uma desconexão da sua própria identidade ou realidade, muitas vezes necessária devido a traumas, mas que pode diminuir sua capacidade de pensar por si e a perda da noção de valor próprio. Ao trabalhar essa emoção, você terá uma maior conexão com a sua essência e o poder de criar a sua própria realidade. Quando a alienação surgir, acolha-a como um sinal de que sua alma busca reconexão. Permita-se observar essa desconexão sem julgamento, e então, com devoção a si mesmo, inicie o caminho de volta à sua essência, redescobrindo sua identidade e seu valor intrínseco.",
+    "phrases": null,
+    "letra": "E3",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "89",
+    "title": "Devoção",
+    "description": "A devoção é o ato de se dedicar e se tornar \\\"discípulo\\\" de algo com disciplina e consistência. Direcione sua atenção para o que realmente eleva o seu ser, evitando a devoção que gera frustração (quando as coisas não acontecem como esperado) ou que serve a um bem que não é o mais elevado.",
+    "phrases": null,
+    "letra": "E3",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "90",
+    "title": "Destruição",
+    "description": "A destruição é apresentada como a queda graciosa daquilo que não serve mais, abrindo espaço para o novo e mais alinhado em sua vida. Sugere-se aceitar o fim dos ciclos, pois muitas vezes há uma razão maior e benéfica para a destruição, que pode dar lugar a uma reconstrução mais encantadora. Acolha a destruição não como um fim, mas como um ato de limpeza e renovação. Permita-se liberar o apego ao que se foi, confiando que cada final abre um espaço sagrado para que a inspiração floresça e crie algo ainda mais alinhado com o seu verdadeiro ser.",
+    "phrases": null,
+    "letra": "E4",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "91",
+    "title": "Inspiração",
+    "description": "A inspiração é trazer o Espírito para o corpo, a vibração que você deve expressar constantemente, criando sem frustrações ou bloqueios. Perdoe interferências que impedem a sua inspiração, pois ela é um processo de constante recebimento e expressão da sua essência.",
+    "phrases": null,
+    "letra": "E4",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "92",
+    "title": "Ferido",
+    "description": "Sentir-se ferido ou magoado ocorre quando você entrega seu poder a outra pessoa ou situação. Isso pode se tornar um padrão recorrente se as lições não forem aprendidas, impedindo sua clareza e o reconhecimento do seu próprio recurso interno. Perdoe e libere a situação ou pessoa, e seja grato pela lembrança de que você não está acessando seu próprio poder. Quando a ferida surgir, acolha-a com ternura, reconhecendo que ela indica um ponto de vulnerabilidade que busca cura. Permita-se sentir a dor, mas redirecione sua energia para o autocuidado e o resgate do seu poder interior, transformando a ferida em força e aprendizado.",
+    "phrases": null,
+    "letra": "E5",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "93",
+    "title": "Cura",
+    "description": "A cura é sentir-se recuperado fisicamente ou emocionalmente. É modificar padrões de crenças antigas através de uma ressignificação profunda de experiências difíceis, resultando em uma mudança positiva do seu padrão energético.",
+    "phrases": null,
+    "letra": "E5",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "94",
+    "title": "Tristeza",
+    "description": "A tristeza é descrita como um produto de expectativas, projeções ou gatilhos emocionais, surgindo quando você não abraça e confia que o melhor está acontecendo. É uma mudança na sua energia, um apego à forma como as coisas \\\"deveriam ser\\\". Perdoe essa emoção e siga o fluxo da vida, encontrando seu poder mais rapidamente. Permita-se acolher a tristeza com compaixão, sem fugir dela. Sinta-a profundamente, honrando o que ela representa em seu processo. Ao invés de lutar, use esse momento para liberar expectativas e abrir espaço para que a alegria encontre seu caminho de volta, revelando a leveza em seu coração.",
+    "phrases": null,
+    "letra": "E6",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "95",
+    "title": "Alegria",
+    "description": "A alegria é a vibração da celebração constante, que você deve trazer para cada experiência. É um catalisador para o seu desenvolvimento e a expansão da sua consciência, convidando-o a abordar todas as áreas da vida de forma alegre.",
+    "phrases": null,
+    "letra": "E6",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "96",
+    "title": "Autopiedade",
+    "description": "A autopiedade é um forte sentimento de sentir-se mal por si mesmo, muitas vezes um estado de vitimização que o impede de lidar com situações adversas e o afasta de suas capacidades. Entenda que ela pode ser normal e, por vezes, necessária para o desenvolvimento da consciência, pois pode despertar empatia. Quando a autopiedade surgir, acolha-a como um chamado à sua própria compaixão. Permita-se reconhecer a dor, mas também a força que reside em você para transcender o estado de vítima, cultivando sua autoestima e o poder de enfrentar os desafios com resiliência.",
+    "phrases": null,
+    "letra": "E7",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "97",
+    "title": "Autoestima",
+    "description": "A autoestima é a sua habilidade de pensar positivamente sobre si, reconhecer suas qualidades e virtudes, e respeitar-se. Ela está ligada ao sucesso financeiro, ao poder pessoal, à individualidade, à capacidade de reinventar-se e de assumir riscos, pois a confiança e a autoestima são internas.",
+    "phrases": null,
+    "letra": "E7",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "98",
+    "title": "Contradição",
+    "description": "A contradição são energias ou pensamentos conflitantes que podem impedir sua materialização e causar inconstância e estresse. Permita que ambos os tipos de pensamentos existam; a contradição pode ser um sinal de uma decisão árdua ou um esforço para clarear o que está acontecendo em você. Acolha a contradição não como um erro, mas como um diálogo interno que busca clareza. Permita-se observar esses pensamentos conflitantes, sem a necessidade de resolvê-los imediatamente, confiando que a consistência virá da sua verdade mais profunda, à medida que você se alinha com o que realmente importa.",
+    "phrases": null,
+    "letra": "E8",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "99",
+    "title": "Consistência",
+    "description": "A consistência é uma das energias mais fundamentais, significando checar consistentemente consigo mesmo o que realmente traz felicidade e alegria. A verdadeira consistência surge do centro do seu ser, expressando o que é autêntico em você, e não de uma tentativa de compensar a inconstância alheia.",
+    "phrases": null,
+    "letra": "E8",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "100",
+    "title": "Mágoa",
+    "description": "A mágoa é descrita como uma negatividade e dor prolongadas, uma descrença de longa data no seu poder ou uma ilusão que perdura. Ela sinaliza que é preciso um tempo para você se amar e cuidar de si. Permita que a mágoa seja acomodada, e que o perdão e o amor em sua presença a dissolvam. Sinta a mágoa como uma ferida antiga que busca sua atenção e cura. Acolha-a com gentileza, permitindo-se sentir a dor, mas com a intenção de liberar o que não serve mais. O perdão a si e aos outros é o caminho para se tornar inabalável diante das adversidades.",
+    "phrases": null,
+    "letra": "E9",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "101",
+    "title": "Inabalável",
+    "description": "O estado inabalável ideal é ter a sabedoria de ser firme e focado quando necessário, mas também flexível a novas ideias e à diversidade. Encontre o equilíbrio, honrando sua própria verdade e reconhecendo seu poder interno, evitando a rigidez (se for muito inabalável) e o abandono (se for muito pouco).",
+    "phrases": null,
+    "letra": "E9",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "102",
+    "title": "Indecisão",
+    "description": "A indecisão é uma das energias mais desempoderantes, surgindo de um registro de que tomar decisões não é seguro e da incerteza sobre quem você é. Ela pode impedir a materialização dos seus desejos e causar estresse ao seu sistema nervoso. Relaxe na indecisão, pois você aprenderá o que é preciso, e o balanceamento dissolverá o medo de ser decisivo. Acolha a indecisão como um momento para a pausa e para a reflexão interna. Permita-se ouvir a sua voz interior, o lugar de sua sabedoria, e confie que, ao se conectar com ela, a clareza surgirá, dissipando o medo de decidir e fortalecendo sua confiança.",
+    "phrases": null,
+    "letra": "E1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "103",
+    "title": "Confiança",
+    "description": "A confiança é entrar em contato com o que há de mais confiável em si: sua voz interior, sua intuição. É confiar em si mesmo, nos outros e no processo da vida, diminuindo a carga de depender da validação externa.",
+    "phrases": null,
+    "letra": "E1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "104",
+    "title": "Dor",
+    "description": "A dor é apresentada como o arauto da mudança, um mensageiro que, ao ser sentido, revela sua mensagem. Ela pode ser física, emocional ou psicológica; no caso da dor física, é a alma conversando com o seu corpo. Respire no local da dor e compreenda que, apesar de desagradável, ela traz aprendizados importantes. Ao sentir a dor, permita-se acolhê-la como um mensageiro sagrado do seu corpo e da sua alma. Em vez de resistir, respire na sua presença, confiando que ela o guiará para o \\\"bem\\\", revelando as mudanças e os aprendizados necessários para sua evolução.",
+    "phrases": null,
+    "letra": "F1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "105",
+    "title": "Bem",
+    "description": "O bem é o sentimento de bem-estar que precisa começar dentro de você, e não da busca de agradar aos outros. O verdadeiro bem-estar surge da harmonia consigo mesmo, estando contente com as suas próprias ações. Ao buscar o bem dos outros, cuide para não negligenciar o seu próprio.",
+    "phrases": null,
+    "letra": "F1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "106",
+    "title": "Vingança",
+    "description": "A vingança surge da sensação de injustiça, de que algo \\\"mau\\\" foi feito, gerando a necessidade de \\\"equilibrar\\\" a situação. Embora possa impulsionar uma ação, entenda que a alma se importa com o seu avanço, não com a forma. É uma falta de confiança no equilíbrio da vida; o perdão das interferências permite que aprendizados e verdades surjam. Quando a vingança surgir, acolha essa energia de querer restaurar o equilíbrio. Permita-se sentir a injustiça, mas redirecione essa força para o autoperdão e a busca por harmonia, escolhendo a amizade consigo mesmo e com o processo da vida, ao invés de buscar retaliar.",
+    "phrases": null,
+    "letra": "F2",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "107",
+    "title": "Amizade",
+    "description": "A amizade é abordada a partir de experiências de desapontamento ou frustração. Sugere-se perdoar e compreender que tudo o que tinha que acontecer, aconteceu. Lembre-se que a amizade genuína nasce e se mantém sem esforço; se há esforço excessivo, pode ser um convite para um novo caminho.",
+    "phrases": null,
+    "letra": "F2",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "108",
+    "title": "Inveja",
+    "description": "A inveja é uma frequência que gera desempoderamento, surgindo da crença de que alguém tem algo que você não tem. Ao despertar, você reconheceria que o que sente tem relação com o que você já possui e que você é o criador da sua realidade. Ela se dissolve ao reconhecer que não há nada que você não seja em potencial. Acolha a inveja não como um defeito, mas como um indicador do seu desejo e potencial. Permita-se sentir, mas transforme-a em admiração genuína, reconhecendo que o que você admira no outro é um reflexo do que você também pode cultivar e manifestar em sua própria vida.",
+    "phrases": null,
+    "letra": "F3",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "109",
+    "title": "Admiração",
+    "description": "A admiração pode ser a falta de se sentir admirado, a busca por essa frequência, ou o desejo de sentir o que outros sentem. Ela precisa ser liberada e balanceada, independentemente de como foi gravada na sua memória, para que possa fluir de forma saudável.",
+    "phrases": null,
+    "letra": "F3",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "110",
+    "title": "Abuso",
+    "description": "O abuso (emocional ou físico), embora doloroso, é apresentado como uma experiência que o leva a um ponto de dizer \\\"chega\\\", de se amar, se valorizar e de sair da zona de conforto. O perdão ao agressor é a chave para a sua libertação. Quando confrontado com a experiência do abuso, acolha a dor e a ferida profunda que ele causou. Permita-se sentir e processar, mas use essa experiência como um poderoso catalisador para se amar incondicionalmente, valorizar sua essência e redirecionar sua paixão para a construção de uma vida plena e protegida.",
+    "phrases": null,
+    "letra": "F4",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "111",
+    "title": "Paixão",
+    "description": "A paixão pode ser física, romântica ou pela vida. Viver com paixão é uma das coisas mais empoderadoras que você pode fazer. Se houve decepções ou fechamentos à paixão no passado, dissolva essas associações negativas para permitir que essa energia flua intensamente em sua vida.",
+    "phrases": null,
+    "letra": "F4",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "112",
+    "title": "Desespero",
+    "description": "O desespero é um medo prolongado e uma incerteza que se manifesta como a crença de \\\"não há nada que eu possa fazer\\\". Entenda que o desespero não tem o poder de extinguir sua capacidade criativa. Ao despertar para o seu papel de criador da realidade, ele se dissolve. Ao sentir o desespero, permita-se acolher a profundidade dessa emoção sem resistência. Sinta-o, mas lembre-se de que sua essência criativa permanece intacta. Use esse momento para buscar a tranquilidade interna, confiando que mesmo no ponto mais baixo, novas possibilidades podem surgir.",
+    "phrases": null,
+    "letra": "F5",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "113",
+    "title": "Tranquilidade",
+    "description": "A tranquilidade é um estado natural, de estar em paz e em movimento harmonioso. Seu objetivo é permanecer tranquilo internamente diante do caos externo, escolhendo a tranquilidade através do poder da escolha sobre suas emoções.",
+    "phrases": null,
+    "letra": "F5",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "114",
+    "title": "Luto",
+    "description": "O luto (frequentemente associado à morte) representa a ideia de que algo pode ser graciosamente interrompido. Entenda que nem sempre a morte é algo \\\"ruim\\\", pois a vida é eterna. Ao desenvolver a consciência da eternidade da vida, a ideia de luto se torna mais fácil de lidar. Acolha o luto como um processo sagrado de transformação, honrando a perda, mas também a continuidade da vida. Permita-se sentir a dor, mas confie que, através desse processo, a graça pode se manifestar, revelando a beleza da impermanência e a eternidade do amor.",
+    "phrases": null,
+    "letra": "F6",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "115",
+    "title": "Graça",
+    "description": "A graça é sentir-se abençoado e agraciado, permitindo que as bênçãos aconteçam em sua vida. É viver no fluxo natural da experiência sem interferência, com humildade, presença amorosa, vulnerabilidade e autenticidade. Perdoe qualquer interferência na sua habilidade de permitir a graça e aceite humildemente o que o universo oferece.",
+    "phrases": null,
+    "letra": "F6",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "116",
+    "title": "Frigidez",
+    "description": "A frigidez é descrita como a falta de prazer nas coisas, algo rígido que quebra ao toque, ou uma experiência que bloqueou o seu sentir. Pode ser uma supressão de sensações para evitar a dor. Reconheça esses bloqueios para restaurar sua capacidade de sentir. Quando a frigidez se manifestar, acolha-a como um convite para investigar os bloqueios que impedem o fluxo do prazer em sua vida. Permita-se explorar as origens dessa rigidez, com a intenção de suavizar e se abrir novamente para a experiência plena de sentir e desfrutar.",
+    "phrases": null,
+    "letra": "F7",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "117",
+    "title": "Prazer",
+    "description": "O prazer é uma emoção que, ao ser sentida, pode ser seguida por uma decepção no subconsciente, criando um mecanismo de defesa que associa prazer a algo \\\"perigoso\\\". Ao balancear essa emoção, você desassocia esse gatilho, permitindo que o prazer seja seguro novamente em sua vida.",
+    "phrases": null,
+    "letra": "F7",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "118",
+    "title": "Culpa",
+    "description": "A culpa é frequentemente ligada a uma experiência passada de indignidade ou de não ter feito o \\\"correto\\\". Liberar a culpa o permite estar no presente e aprender. É um sentimento que pode ajudá-lo a crescer grandiosamente se você se permitir senti-lo e processá-lo. O processo de dissolução da culpa envolve: reconhecer que você fez o seu melhor no momento, identificar o que deseja fazer diferente da próxima vez, e perdoar a si mesmo e aos outros. Ao sentir a culpa, acolha-a como um sinal de sua consciência que busca aprendizado e reparação. Permita-se sentir, mas use essa emoção como um catalisador para a redenção, transformando arrependimento em ação construtiva e libertando-se para um futuro mais leve.",
+    "phrases": null,
+    "letra": "F8",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "119",
+    "title": "Redenção",
+    "description": "A redenção é o ato de realizar um reparo, libertar-se, e ter a capacidade de se redimir, ao invés de apenas pedir desculpas. É um ato de salvação que o permite seguir para novas experiências com base em lições passadas, integrando-as para o seu crescimento.",
+    "phrases": null,
+    "letra": "F8",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "120",
+    "title": "Amargura",
+    "description": "A amargura é o não ver doçura ou graça na vida, um ressentimento prolongado que cria uma visão amarga das suas experiências. Permita-se liberar essa amargura e o ressentimento, abraçando-a e reconhecendo que ela serviu a um propósito, ativando e aprimorando a sua capacidade de focar. Acolha a amargura não como um fardo, mas como um convite para curar velhos ressentimentos. Permita-se sentir essa aspereza, mas com a intenção de suavizá-la, abrindo seu coração para a doçura da vida e a beleza que reside na aceitação e no perdão.",
+    "phrases": null,
+    "letra": "F9",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "121",
+    "title": "Doçura",
+    "description": "A doçura é ser uma pessoa doce, perceber a doçura nas falas e atos dos outros, e permitir algo mais profundo e amoroso na vida. É conseguir ver a doçura nas situações, apesar dos desafios.",
+    "phrases": null,
+    "letra": "F9",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "122",
+    "title": "Vazio",
+    "description": "O vazio é descrito como sentir-se perdido e insignificante, o que pode levá-lo a uma postura de vítima. Embora possa significar o fim de um ciclo, o vazio também representa a presença de infinitas possibilidades para quem está desperto, como se estivesse de férias da mente. Ao sentir o vazio, acolha-o como um espaço de potencial infinito, e não como uma ausência. Permita-se mergulhar nessa quietude, confiando que ele é o terreno fértil para o nascimento de novas ideias, sonhos e uma versão ainda mais plena de você.",
+    "phrases": null,
+    "letra": "F1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "123",
+    "title": "Nascimento",
+    "description": "O nascimento é a mudança de ciclo, a oportunidade de renovação. Não se permita ficar preso ao fim de um ciclo anterior, pois isso bloqueia novas oportunidades. Dê permissão para o nascimento de uma nova versão de si, honrando o ciclo natural da vida.",
+    "phrases": null,
+    "letra": "F1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "124",
+    "title": "Apatia",
+    "description": "A apatia é a ausência de sentir (nem bom, nem ruim), falta de energia, motivação e interesse, uma indiferença que pode ser causada por trauma ou esgotamento, desconectando você da sua essência. É uma das vibrações mais contrativas; entenda que até mesmo sentir raiva (que tem mais energia) já é um sinal de evolução. Quando a apatia se instalar, acolha-a como um sinal de que sua alma busca um descanso profundo e reconexão. Permita-se honrar essa pausa, e então, gentilmente, busque as pequenas faíscas de interesse e energia que o guiarão de volta à paz e à sua vitalidade.",
+    "phrases": null,
+    "letra": "G1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "125",
+    "title": "Paz",
+    "description": "A paz é estar um com a vida, presente com o que é, sem desejar que seja diferente. Retorne constantemente à paz em seu interior para não interferir no seu desenvolvimento natural e permitir que a inteligência universal revele o próximo passo para você.",
+    "phrases": null,
+    "letra": "G1",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "126",
+    "title": "Depressão",
+    "description": "A depressão, mais do que um diagnóstico, é um estado físico da energia causado pela supressão de emoções – coisas que você gostaria de dizer ou fazer, mas não faz. Essa compressão do campo energético pode levá-lo a esse estado. A solução é agir pelos impulsos do seu coração, expressar seus sentimentos e ressignificar o que você julgou \\\"ruim\\\" ou \\\"errado\\\", neutralizando a compressão. Acolha a depressão como um grito da sua alma por libertação e expressão. Permita-se sentir essa compressão e, com amor por si, comece a desvendar o que precisa ser dito, feito e ressignificado, abrindo caminho para a sua felicidade e o fluxo natural da sua energia.",
+    "phrases": null,
+    "letra": "G2",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "127",
+    "title": "Felicidade",
+    "description": "A felicidade é algo que acontece internamente, uma emoção que visita, mas não permanece constantemente. Em vez de buscar a felicidade (que pode ser uma jornada sem fim), procure a apreciação e a alegria (que são mais estáveis e enraizadas), pois nada \\\"o faz\\\" nada, a escolha é sempre sua.",
+    "phrases": null,
+    "letra": "G2",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "128",
+    "title": "Humilhação",
+    "description": "A humilhação surge quando você não se aceita ou não se valoriza, permitindo que outros o dominem, o que pode resultar em submissão. Perdoe qualquer interferência que tenha sido criada por você não perceber ou expressar sua própria grandeza. Quando a humilhação surgir, acolha-a como um ponto de reflexão sobre o seu próprio valor. Permita-se sentir a dor, mas use-a como um catalisador para reafirmar a sua autoaceitação e despertar a sua exaltação, lembrando-se da sua grandeza inata e do respeito que você merece.",
+    "phrases": null,
+    "letra": "G3",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "129",
+    "title": "Exaltação",
+    "description": "A exaltação é valorizar-se, reconhecer suas virtudes e permitir que as pessoas as reconheçam. É uma grande vibração que também se manifesta ao reconhecer o sucesso nos outros, lembrando que não existe separação, somos todos um.",
+    "phrases": null,
+    "letra": "G3",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "130",
+    "title": "Ódio",
+    "description": "O ódio é simplesmente a ausência do amor, um grande medo que muitas vezes gera a necessidade de uma energia contundente para você se mover de um lugar de aprisionamento. Permita-se sentir o ódio e, ao acomodá-lo com a presença do amor, ele se dissolve, eliminando a necessidade de expressá-lo externamente. Acolha o ódio não como uma falha, mas como um clamor por amor e libertação. Permita-se sentir essa energia intensa, mas com a intenção de transmutá-la. Use-a como um ponto de partida para abrir seu coração e convidar o amor incondicional para dissolver as barreiras e trazer a paz.",
+    "phrases": null,
+    "letra": "G4",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "131",
+    "title": "Amor",
+    "description": "O amor é o solvente universal, a ferramenta mais poderosa. O amor incondicional é o que você deve cultivar, mesmo diante da rejeição, desinteresse ou julgamento, pois ele dissolve qualquer situação de volta à neutralidade e ao estado mais puro.",
+    "phrases": null,
+    "letra": "G4",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "132",
+    "title": "Medo",
+    "description": "O medo é a principal razão da instabilidade, da perda de equilíbrio e clareza, surgindo do não saber tudo o que você é. Ele indica que você está prestes a tomar mais consciência de quem você é. Acomode o medo, respire na área contraída do seu corpo e permita que ele se dissolva na respiração, acreditando que você pode enfrentá-lo e ser vitorioso. Ao sentir o medo, acolha-o como um companheiro de jornada que o lembra de sua humanidade. Permita-se sentir a contração, mas não se identifique com ela. Use o medo como um portal para a sabedoria, aprendendo a confiar em sua força interior e a expandir sua consciência além dos seus limites percebidos.",
+    "phrases": null,
+    "letra": "G5",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "133",
+    "title": "Sabedoria",
+    "description": "A sabedoria é o conhecimento que você adquire por meio de experiências vividas, sem carga emocional, permitindo que os desafios se tornem mais simples e leves. Uma pessoa sábia reconhece que erros são oportunidades de aprendizado e crescimento.",
+    "phrases": null,
+    "letra": "G5",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "134",
+    "title": "Paranoia",
+    "description": "A paranoia é uma preocupação excessiva e desnecessária, preenchendo sua mente com os piores cenários, o que é desempoderante. Confie que o que tiver que acontecer, irá acontecer, e que sempre servirá e o beneficiará. Perdoe essa tendência e encontre maneiras divertidas de usar a sua mente criativamente. Quando a paranoia surgir, acolha essa tempestade mental como um sinal de que sua mente busca segurança. Permita-se observar os pensamentos catastróficos sem se apegar a eles. Confie no fluxo da vida e na serendipidade, desviando sua energia para a criação de um futuro mais leve e positivo.",
+    "phrases": null,
+    "letra": "G6",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "135",
+    "title": "Serendipidade",
+    "description": "A serendipidade são eventos afortunados que ocorrem sucessivamente quando você está em alinhamento, fazendo com que tudo pareça acontecer de forma surpreendentemente fácil e harmoniosa em sua vida.",
+    "phrases": null,
+    "letra": "G6",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "136",
+    "title": "Ansiedade",
+    "description": "A ansiedade é o nervosismo gerado pela não confiança no processo da vida e pela espera do pior, um \\\"excesso de futuro\\\". A respiração profunda pode suavizá-la. Ao se tornar ciente do que a desperta e ao perceber que tudo acontece para você, ela se neutraliza. Acolha a ansiedade não como um inimigo, mas como um mensageiro do seu sistema nervoso que busca atenção. Permita-se sentir o nervosismo, mas ancore-se no presente através da respiração e da fé. Confie que, ao se reconectar com o agora, você encontrará a tranquilidade e a força para lidar com o que vier.",
+    "phrases": null,
+    "letra": "G7",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "137",
+    "title": "Fé",
+    "description": "A fé é a sua capacidade de viver além dos cinco sentidos, de ir além do \\\"radar\\\", confiando em uma inteligência inata de que tudo o que acontece é perfeito. É confiar em si mesmo, no seu coração, na sua intuição e na sua sabedoria, diminuindo a carga de depender da validação externa.",
+    "phrases": null,
+    "letra": "G7",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "138",
+    "title": "Condenação",
+    "description": "A condenação (ou julgamento) é vista como uma emoção muito praticada e que mais cria interferências, surgindo do desejo de rotular e categorizar para ter uma falsa sensação de saber. Julgar impede sua criação e o reconhecimento de que tudo acontece para o seu bem. Escolha fazer diferente, compreendendo que tudo serve para orientá-lo. Quando a condenação surgir, seja em relação a si ou aos outros, acolha-a como um convite para observar sua necessidade de controle e certezas. Permita-se soltar o julgamento e abraçar a benevolência, reconhecendo que cada ser está em seu próprio caminho de aprendizado e que tudo tem um propósito maior.",
+    "phrases": null,
+    "letra": "G8",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "139",
+    "title": "Benevolência",
+    "description": "A benevolência é o seu esforço de ser uma boa pessoa, presente e solícita, servindo aos outros. Seja benevolente incondicionalmente para evitar estresse, cuidando para não cair no excesso (achando saber o que é melhor para os outros) e na decepção quando ela não é reconhecida.",
+    "phrases": null,
+    "letra": "G8",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "140",
+    "title": "Fraqueza",
+    "description": "A fraqueza pode significar fragilidade, falta de poder ou impotência, muitas vezes confundida com vulnerabilidade. A impotência é uma ilusão de ser vítima do ambiente, e o texto sugere que ela te incentiva a ser mais criativo e a perdoar a ilusão de não ser responsável pela própria experiência interna. A vulnerabilidade, por sua vez, é apresentada como o estado mais poderoso, pois estar vulnerável significa estar conectado com a vida e ter apoio divino. A forma de lidar com a fraqueza da vulnerabilidade é permitir-se senti-la e usá-la a seu favor. Ao sentir a fraqueza, acolha-a como um portal para a sua vulnerabilidade mais autêntica. Permita-se sentir essa fragilidade, mas reconheça que nela reside o seu verdadeiro poder. Ao abraçar sua humanidade, você se conecta com uma força maior que o capacita a ser criador da sua própria realidade.",
+    "phrases": null,
+    "letra": "G9",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "141",
+    "title": "Poder",
+    "description": "O poder é saber usar a sua energia corretamente, sem colocá-la em algo ou alguém externo. É reconhecer o seu próprio poder de ser criador da sua realidade. Entenda que a vulnerabilidade é, na verdade, o estado mais poderoso, pois estar vulnerável significa estar conectado com a vida e ter apoio divino. Permita-se sentir sua vulnerabilidade e usá-la a seu favor.",
+    "phrases": null,
+    "letra": "G9",
+    "tipo": "Positiva"
+  },
+  {
+    "id": "142",
+    "title": "Desprezo",
+    "description": "O desprezo é a energia de empurrar para longe algo que estava em sua vida, ou a não aceitação de algo que aconteceu, sem compreender que tudo está tentando servir ao seu desenvolvimento. Essa atitude não o serve e convida a estar presente com a situação sem reagir ou mudá-la, encontrando força na vulnerabilidade e descobrindo empatia. Quando o desprezo surgir, seja em relação a si ou aos outros, acolha essa energia de afastamento. Permita-se sentir, mas investigue a raiz dessa não aceitação. Use-o como um convite para cultivar o carinho por si mesmo e por tudo que faz parte da sua jornada, encontrando a harmonia na aceitação e no amor incondicional.",
+    "phrases": null,
+    "letra": "G1",
+    "tipo": "Negativa"
+  },
+  {
+    "id": "143",
+    "title": "Carinho",
+    "description": "O carinho é um tipo de ternura, apreciar e querer cuidar, com inocência e zelo. Se você busca carinho e ele não é recebido, compreenda que isso pode ser parte de um processo para não criar apegos. Perdoe qualquer interferência e permita que o carinho flua de você, sendo também um conforto para os outros.",
+    "phrases": null,
+    "letra": "G1",
+    "tipo": "Positiva"
+  }
+]
