@@ -50,7 +50,7 @@ set -e
 # Se o banco SQLite não existir no volume persistente, aplica o schema
 if [ ! -f /app/prisma/dev.db ]; then
   echo "Inicializando banco de dados no Easypanel..."
-  npx prisma db push --skip-generate
+  npx prisma db push
 fi
 
 exec "$@"
