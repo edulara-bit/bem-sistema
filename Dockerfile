@@ -42,15 +42,9 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Script de entrada para aplicar migrações do Prisma no boot se necessário
+# Script de entrada para inicialização rápida do Next.js
 COPY --chown=nextjs:nodejs <<'EOF' /app/entrypoint.sh
 #!/bin/sh
-set -e
-
-# Se o banco SQLite não existir no volume persistente ou precisar atualizar colunas, sincroniza o schema
-echo "Sincronizando schema do banco de dados SQLite..."
-npx prisma db push --skip-generate --accept-data-loss || true
-
 exec "$@"
 EOF
 
