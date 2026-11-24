@@ -683,7 +683,7 @@ export function AgendaView({
                     {rule.enabled && (
                       <div className="pt-1">
                         <label className="block text-[11px] font-medium text-[#6B726B] mb-1">
-                          Horários disponíveis (separados por vírgula):
+                          Horários disponíveis (digite livremente separados por vírgula, ex: 08:00, 19:00, 20:00, 21:00):
                         </label>
                         <input
                           type="text"
@@ -695,11 +695,15 @@ export function AgendaView({
                               [d]: { ...rule, hours: newHours },
                             });
                           }}
-                          placeholder="08:00, 09:00, 10:00, 14:00, 15:00"
+                          placeholder="08:00, 09:00, 14:00, 18:00, 19:00, 20:00, 21:00"
                           className="w-full px-3 py-1.5 rounded-xl border border-[#E8E5DF] bg-white text-xs text-[#222924] focus:outline-none focus:ring-1 focus:ring-[#1F4D36]"
                         />
                         <div className="flex flex-wrap gap-1 mt-1.5">
-                          {['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00'].map((preset) => (
+                          {[
+                            '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', 
+                            '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', 
+                            '19:00', '20:00', '21:00', '22:00'
+                          ].map((preset) => (
                             <button
                               key={preset}
                               type="button"
@@ -712,9 +716,13 @@ export function AgendaView({
                                   });
                                 }
                               }}
-                              className="text-[9px] px-1.5 py-0.5 rounded bg-white border border-[#E8E5DF] text-[#6B726B] hover:bg-[#EBF3ED] hover:text-[#1F4D36]"
+                              className={`text-[9px] px-1.5 py-0.5 rounded border transition-all ${
+                                rule.hours.includes(preset)
+                                  ? 'bg-[#1F4D36] text-white border-[#1F4D36] font-semibold'
+                                  : 'bg-white border-[#E8E5DF] text-[#6B726B] hover:bg-[#EBF3ED] hover:text-[#1F4D36]'
+                              }`}
                             >
-                              + {preset}
+                              {rule.hours.includes(preset) ? '✓ ' : '+ '}{preset}
                             </button>
                           ))}
                         </div>
