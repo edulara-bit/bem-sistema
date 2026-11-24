@@ -46,7 +46,7 @@ export async function GET(request: Request) {
         const appointments24h = await prisma.appointment.findMany({
           where: {
             tenantId: tenant.id,
-            status: 'scheduled',
+            status: { in: ['scheduled', 'confirmed'] },
             reminderSent: false,
             scheduledAt: { gte: start24h, lte: end24h },
           },
