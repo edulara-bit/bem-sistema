@@ -31,7 +31,7 @@ services:
           memory: 128M
 
   evolution-api:
-    image: evoapicloud/evolution-api:latest
+    image: evoapicloud/evolution-api:v1.8.7
     container_name: evolution_api
     restart: always
     ports:
@@ -39,12 +39,8 @@ services:
     environment:
       - SERVER_PORT=8080
       - AUTHENTICATION_API_KEY=bem_evolution_super_secret_token_2026
+      - DATABASE_ENABLED=false
       - DATABASE_PROVIDER=local
-      - DATABASE_SAVE_DATA_INSTANCE=true
-      - DATABASE_SAVE_DATA_NEW_MESSAGE=false
-      - DATABASE_SAVE_MESSAGE_UPDATE=false
-      - DATABASE_SAVE_DATA_CONTACTS=false
-      - DATABASE_SAVE_DATA_CHATS=false
       - LOG_LEVEL=ERROR
     volumes:
       - ./evolution_instances:/evolution/instances
