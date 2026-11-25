@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 
 let initializedInProcess = false;
+let migrationInFlight: Promise<void> | null = null;
 
 export const DEFAULT_BEM_CORE_PHILOSOPHY = `Princípios Fundamentais da Técnica B.E.M. (Bioenergética Emocional Magnética):
 1. O corpo, a mente e o campo emocional funcionam como uma unidade indivisível: toda emoção reprimida ou conflito não elaborado registra-se na fisiologia e na tensão corporal.
@@ -71,194 +72,214 @@ Diretrizes:
  */
 export async function ensureAiTables(tenantId?: string) {
   if (!initializedInProcess) {
-    try {
-      const alterStatements = [
-        `ALTER TABLE "Tenant" ADD COLUMN "aiApiKey" TEXT`,
-        `ALTER TABLE "Tenant" ADD COLUMN "n8nWebhookUrl" TEXT`,
-        `ALTER TABLE "Tenant" ADD COLUMN "aiDefaultDeliveryMode" TEXT NOT NULL DEFAULT 'review'`,
-        `ALTER TABLE "Tenant" ADD COLUMN "aiCorePhilosophy" TEXT`,
-      ];
-      for (const stmt of alterStatements) {
+    if (!migrationInFlight) {
+      migrationInFlight = (async () => {
         try {
-          await prisma.$executeRawUnsafe(stmt);
-        } catch {
-          // Coluna já existe
+          const cols = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
+            `PRAGMA table_info("Tenant")`
+          );
+          const colSet = new Set(cols.map((c) => c.name));
+
+          const alterDefs: Array<[string, string]> = [
+            ['aiApiKey', `ALTER TABLE "Tenant" ADD COLUMN "aiApiKey" TEXT`],
+            ['n8nWebhookUrl', `ALTER TABLE "Tenant" ADD COLUMN "n8nWebhookUrl" TEXT`],
+            [
+              'aiDefaultDeliveryMode',
+              `ALTER TABLE "Tenant" ADD COLUMN "aiDefaultDeliveryMode" TEXT NOT NULL DEFAULT 'review'`,
+            ],
+            ['aiCorePhilosophy', `ALTER TABLE "Tenant" ADD COLUMN "aiCorePhilosophy" TEXT`],
+          ];
+          for (const [colName, stmt] of alterDefs) {
+            if (!colSet.has(colName)) {
+              await prisma.$executeRawUnsafe(stmt);
+            }
+          }
+
+          await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "AiAgentConfig" (
+              "id" TEXT NOT NULL PRIMARY KEY,
+              "tenantId" TEXT NOT NULL,
+              "slug" TEXT NOT NULL,
+              "name" TEXT NOT NULL,
+              "description" TEXT,
+              "systemPrompt" TEXT NOT NULL,
+              "deliveryMode" TEXT NOT NULL DEFAULT 'review',
+              "autoMemory" BOOLEAN NOT NULL DEFAULT true,
+              "webhookUrl" TEXT,
+              "enabled" BOOLEAN NOT NULL DEFAULT true,
+              "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              CONSTRAINT "AiAgentConfig_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+            )
+          `);
+          await prisma.$executeRawUnsafe(
+            `CREATE UNIQUE INDEX IF NOT EXISTS "AiAgentConfig_tenantId_slug_key" ON "AiAgentConfig"("tenantId", "slug")`
+          );
+
+          await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "KnowledgeSource" (
+              "id" TEXT NOT NULL PRIMARY KEY,
+              "tenantId" TEXT NOT NULL,
+              "title" TEXT NOT NULL,
+              "sourceType" TEXT NOT NULL DEFAULT 'text',
+              "domainScope" TEXT NOT NULL DEFAULT 'all',
+              "authorOrRef" TEXT,
+              "sourceUrl" TEXT,
+              "rawContent" TEXT NOT NULL,
+              "tags" TEXT,
+              "isPinned" BOOLEAN NOT NULL DEFAULT false,
+              "chunkCount" INTEGER NOT NULL DEFAULT 0,
+              "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              CONSTRAINT "KnowledgeSource_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+            )
+          `);
+          await prisma.$executeRawUnsafe(
+            `CREATE INDEX IF NOT EXISTS "KnowledgeSource_tenantId_domainScope_idx" ON "KnowledgeSource"("tenantId", "domainScope")`
+          );
+
+          await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "KnowledgeChunk" (
+              "id" TEXT NOT NULL PRIMARY KEY,
+              "tenantId" TEXT NOT NULL,
+              "sourceId" TEXT NOT NULL,
+              "chunkIndex" INTEGER NOT NULL,
+              "content" TEXT NOT NULL,
+              "embeddingJson" TEXT,
+              "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              CONSTRAINT "KnowledgeChunk_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+              CONSTRAINT "KnowledgeChunk_sourceId_fkey" FOREIGN KEY ("sourceId") REFERENCES "KnowledgeSource" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+            )
+          `);
+          await prisma.$executeRawUnsafe(
+            `CREATE INDEX IF NOT EXISTS "KnowledgeChunk_tenantId_idx" ON "KnowledgeChunk"("tenantId")`
+          );
+          await prisma.$executeRawUnsafe(
+            `CREATE INDEX IF NOT EXISTS "KnowledgeChunk_sourceId_idx" ON "KnowledgeChunk"("sourceId")`
+          );
+
+          await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "StructuredMemory" (
+              "id" TEXT NOT NULL PRIMARY KEY,
+              "tenantId" TEXT NOT NULL,
+              "scope" TEXT NOT NULL,
+              "patientId" TEXT,
+              "category" TEXT NOT NULL DEFAULT 'geral',
+              "title" TEXT NOT NULL,
+              "contentEnc" TEXT NOT NULL,
+              "importance" INTEGER NOT NULL DEFAULT 3,
+              "isPinned" BOOLEAN NOT NULL DEFAULT false,
+              "source" TEXT NOT NULL DEFAULT 'manual',
+              "embeddingJson" TEXT,
+              "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              CONSTRAINT "StructuredMemory_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+              CONSTRAINT "StructuredMemory_patientId_fkey" FOREIGN KEY ("patientId") REFERENCES "Patient" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+            )
+          `);
+          await prisma.$executeRawUnsafe(
+            `CREATE INDEX IF NOT EXISTS "StructuredMemory_tenantId_scope_idx" ON "StructuredMemory"("tenantId", "scope")`
+          );
+          await prisma.$executeRawUnsafe(
+            `CREATE INDEX IF NOT EXISTS "StructuredMemory_tenantId_patientId_idx" ON "StructuredMemory"("tenantId", "patientId")`
+          );
+
+          await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "PatientProgram" (
+              "id" TEXT NOT NULL PRIMARY KEY,
+              "tenantId" TEXT NOT NULL,
+              "patientId" TEXT,
+              "title" TEXT NOT NULL,
+              "goal" TEXT,
+              "durationDays" INTEGER NOT NULL DEFAULT 7,
+              "stepsJson" TEXT NOT NULL,
+              "deliveryMode" TEXT NOT NULL DEFAULT 'review',
+              "status" TEXT NOT NULL DEFAULT 'active',
+              "currentDay" INTEGER NOT NULL DEFAULT 1,
+              "preferredSendHour" TEXT NOT NULL DEFAULT '08:00',
+              "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              CONSTRAINT "PatientProgram_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+              CONSTRAINT "PatientProgram_patientId_fkey" FOREIGN KEY ("patientId") REFERENCES "Patient" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+            )
+          `);
+          await prisma.$executeRawUnsafe(
+            `CREATE INDEX IF NOT EXISTS "PatientProgram_tenantId_status_idx" ON "PatientProgram"("tenantId", "status")`
+          );
+
+          await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "AiMessageDispatch" (
+              "id" TEXT NOT NULL PRIMARY KEY,
+              "tenantId" TEXT NOT NULL,
+              "agentSlug" TEXT NOT NULL,
+              "patientId" TEXT,
+              "appointmentId" TEXT,
+              "programId" TEXT,
+              "channel" TEXT NOT NULL DEFAULT 'whatsapp',
+              "deliveryMode" TEXT NOT NULL DEFAULT 'review',
+              "title" TEXT NOT NULL,
+              "messageText" TEXT NOT NULL,
+              "status" TEXT NOT NULL DEFAULT 'pending_review',
+              "errorMsg" TEXT,
+              "sentAt" DATETIME,
+              "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              CONSTRAINT "AiMessageDispatch_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+              CONSTRAINT "AiMessageDispatch_patientId_fkey" FOREIGN KEY ("patientId") REFERENCES "Patient" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+              CONSTRAINT "AiMessageDispatch_programId_fkey" FOREIGN KEY ("programId") REFERENCES "PatientProgram" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+            )
+          `);
+          await prisma.$executeRawUnsafe(
+            `CREATE INDEX IF NOT EXISTS "AiMessageDispatch_tenantId_status_idx" ON "AiMessageDispatch"("tenantId", "status")`
+          );
+
+          await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "AgentThread" (
+              "id" TEXT NOT NULL PRIMARY KEY,
+              "tenantId" TEXT NOT NULL,
+              "agentSlug" TEXT NOT NULL,
+              "patientId" TEXT,
+              "title" TEXT NOT NULL,
+              "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              CONSTRAINT "AgentThread_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+              CONSTRAINT "AgentThread_patientId_fkey" FOREIGN KEY ("patientId") REFERENCES "Patient" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+            )
+          `);
+
+          await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "AgentMessage" (
+              "id" TEXT NOT NULL PRIMARY KEY,
+              "threadId" TEXT NOT NULL,
+              "role" TEXT NOT NULL,
+              "content" TEXT NOT NULL,
+              "memoriesExtractedJson" TEXT,
+              "sourcesUsedJson" TEXT,
+              "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              CONSTRAINT "AgentMessage_threadId_fkey" FOREIGN KEY ("threadId") REFERENCES "AgentThread" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+            )
+          `);
+
+          // Valida que as novas colunas de Tenant realmente estão acessíveis
+          await prisma.$queryRawUnsafe(`SELECT "aiApiKey", "aiDefaultDeliveryMode" FROM "Tenant" LIMIT 1`);
+          initializedInProcess = true;
+        } catch (err) {
+          console.error('Erro na auto-migração SQLite das tabelas de IA:', err);
+        } finally {
+          migrationInFlight = null;
         }
-      }
-
-      await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "AiAgentConfig" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "tenantId" TEXT NOT NULL,
-          "slug" TEXT NOT NULL,
-          "name" TEXT NOT NULL,
-          "description" TEXT,
-          "systemPrompt" TEXT NOT NULL,
-          "deliveryMode" TEXT NOT NULL DEFAULT 'review',
-          "autoMemory" BOOLEAN NOT NULL DEFAULT true,
-          "webhookUrl" TEXT,
-          "enabled" BOOLEAN NOT NULL DEFAULT true,
-          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT "AiAgentConfig_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-        )
-      `);
-      await prisma.$executeRawUnsafe(
-        `CREATE UNIQUE INDEX IF NOT EXISTS "AiAgentConfig_tenantId_slug_key" ON "AiAgentConfig"("tenantId", "slug")`
-      );
-
-      await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "KnowledgeSource" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "tenantId" TEXT NOT NULL,
-          "title" TEXT NOT NULL,
-          "sourceType" TEXT NOT NULL DEFAULT 'text',
-          "domainScope" TEXT NOT NULL DEFAULT 'all',
-          "authorOrRef" TEXT,
-          "sourceUrl" TEXT,
-          "rawContent" TEXT NOT NULL,
-          "tags" TEXT,
-          "isPinned" BOOLEAN NOT NULL DEFAULT false,
-          "chunkCount" INTEGER NOT NULL DEFAULT 0,
-          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT "KnowledgeSource_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-        )
-      `);
-      await prisma.$executeRawUnsafe(
-        `CREATE INDEX IF NOT EXISTS "KnowledgeSource_tenantId_domainScope_idx" ON "KnowledgeSource"("tenantId", "domainScope")`
-      );
-
-      await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "KnowledgeChunk" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "tenantId" TEXT NOT NULL,
-          "sourceId" TEXT NOT NULL,
-          "chunkIndex" INTEGER NOT NULL,
-          "content" TEXT NOT NULL,
-          "embeddingJson" TEXT,
-          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT "KnowledgeChunk_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-          CONSTRAINT "KnowledgeChunk_sourceId_fkey" FOREIGN KEY ("sourceId") REFERENCES "KnowledgeSource" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-        )
-      `);
-      await prisma.$executeRawUnsafe(
-        `CREATE INDEX IF NOT EXISTS "KnowledgeChunk_tenantId_idx" ON "KnowledgeChunk"("tenantId")`
-      );
-      await prisma.$executeRawUnsafe(
-        `CREATE INDEX IF NOT EXISTS "KnowledgeChunk_sourceId_idx" ON "KnowledgeChunk"("sourceId")`
-      );
-
-      await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "StructuredMemory" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "tenantId" TEXT NOT NULL,
-          "scope" TEXT NOT NULL,
-          "patientId" TEXT,
-          "category" TEXT NOT NULL DEFAULT 'geral',
-          "title" TEXT NOT NULL,
-          "contentEnc" TEXT NOT NULL,
-          "importance" INTEGER NOT NULL DEFAULT 3,
-          "isPinned" BOOLEAN NOT NULL DEFAULT false,
-          "source" TEXT NOT NULL DEFAULT 'manual',
-          "embeddingJson" TEXT,
-          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT "StructuredMemory_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-          CONSTRAINT "StructuredMemory_patientId_fkey" FOREIGN KEY ("patientId") REFERENCES "Patient" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-        )
-      `);
-      await prisma.$executeRawUnsafe(
-        `CREATE INDEX IF NOT EXISTS "StructuredMemory_tenantId_scope_idx" ON "StructuredMemory"("tenantId", "scope")`
-      );
-      await prisma.$executeRawUnsafe(
-        `CREATE INDEX IF NOT EXISTS "StructuredMemory_tenantId_patientId_idx" ON "StructuredMemory"("tenantId", "patientId")`
-      );
-
-      await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "PatientProgram" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "tenantId" TEXT NOT NULL,
-          "patientId" TEXT,
-          "title" TEXT NOT NULL,
-          "goal" TEXT,
-          "durationDays" INTEGER NOT NULL DEFAULT 7,
-          "stepsJson" TEXT NOT NULL,
-          "deliveryMode" TEXT NOT NULL DEFAULT 'review',
-          "status" TEXT NOT NULL DEFAULT 'active',
-          "currentDay" INTEGER NOT NULL DEFAULT 1,
-          "preferredSendHour" TEXT NOT NULL DEFAULT '08:00',
-          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT "PatientProgram_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-          CONSTRAINT "PatientProgram_patientId_fkey" FOREIGN KEY ("patientId") REFERENCES "Patient" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-        )
-      `);
-      await prisma.$executeRawUnsafe(
-        `CREATE INDEX IF NOT EXISTS "PatientProgram_tenantId_status_idx" ON "PatientProgram"("tenantId", "status")`
-      );
-
-      await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "AiMessageDispatch" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "tenantId" TEXT NOT NULL,
-          "agentSlug" TEXT NOT NULL,
-          "patientId" TEXT,
-          "appointmentId" TEXT,
-          "programId" TEXT,
-          "channel" TEXT NOT NULL DEFAULT 'whatsapp',
-          "deliveryMode" TEXT NOT NULL DEFAULT 'review',
-          "title" TEXT NOT NULL,
-          "messageText" TEXT NOT NULL,
-          "status" TEXT NOT NULL DEFAULT 'pending_review',
-          "errorMsg" TEXT,
-          "sentAt" DATETIME,
-          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT "AiMessageDispatch_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-          CONSTRAINT "AiMessageDispatch_patientId_fkey" FOREIGN KEY ("patientId") REFERENCES "Patient" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-          CONSTRAINT "AiMessageDispatch_programId_fkey" FOREIGN KEY ("programId") REFERENCES "PatientProgram" ("id") ON DELETE SET NULL ON UPDATE CASCADE
-        )
-      `);
-      await prisma.$executeRawUnsafe(
-        `CREATE INDEX IF NOT EXISTS "AiMessageDispatch_tenantId_status_idx" ON "AiMessageDispatch"("tenantId", "status")`
-      );
-
-      await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "AgentThread" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "tenantId" TEXT NOT NULL,
-          "agentSlug" TEXT NOT NULL,
-          "patientId" TEXT,
-          "title" TEXT NOT NULL,
-          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT "AgentThread_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-          CONSTRAINT "AgentThread_patientId_fkey" FOREIGN KEY ("patientId") REFERENCES "Patient" ("id") ON DELETE SET NULL ON UPDATE CASCADE
-        )
-      `);
-
-      await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "AgentMessage" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "threadId" TEXT NOT NULL,
-          "role" TEXT NOT NULL,
-          "content" TEXT NOT NULL,
-          "memoriesExtractedJson" TEXT,
-          "sourcesUsedJson" TEXT,
-          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT "AgentMessage_threadId_fkey" FOREIGN KEY ("threadId") REFERENCES "AgentThread" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-        )
-      `);
-
-      initializedInProcess = true;
-    } catch (err) {
-      console.error('Aviso na auto-inicialização das tabelas de IA:', err);
+      })();
     }
+
+    await migrationInFlight;
   }
 
   if (tenantId) {
-    await ensureTenantDefaults(tenantId);
+    try {
+      await ensureTenantDefaults(tenantId);
+    } catch (err) {
+      console.error('Aviso ao semear padrões de IA do consultório:', err);
+    }
   }
 }
 

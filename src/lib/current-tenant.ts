@@ -1,10 +1,12 @@
 import { cookies } from 'next/headers';
 import { prisma } from './prisma';
 import { verifySessionToken } from './auth';
+import { ensureAiTables } from './ai/init-db';
 
 export async function getCurrentTenant() {
   const cookieStore = await cookies();
-  
+  await ensureAiTables();
+
   // 1. Prioriza o tenant da sessão autenticada
   const sessionToken = cookieStore.get('bem_session')?.value;
   if (sessionToken) {
@@ -35,6 +37,8 @@ export async function getCurrentTenant() {
 }
 
 export async function getAllTenants() {
+  await ensureAiTables();
+
   return await prisma.tenant.findMany({
     select: {
       id: true,
@@ -46,4 +50,3 @@ export async function getAllTenants() {
     orderBy: { createdAt: 'asc' },
   });
 }
-
