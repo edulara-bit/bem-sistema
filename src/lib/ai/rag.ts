@@ -57,8 +57,46 @@ export async function callGeminiText(params: {
 }
 
 /**
- * Gera vetor de embedding leve (256 dimensões) via Gemini Embedding API.
+ * Gera vetores de embedding em lote (256 dimensões) em uma única chamada rápida à API Gemini.
  */
+export async function embedTextsBatch(texts: string[]): Promise<Array<number[] | null>> {
+  const ai = getGenAI();
+  if (!ai || texts.length === 0) return texts.map(() => null);
+
+  const results: Array<number[] | null> = [];
+  const batchSize = 25;
+
+  for (let offset = 0; offset < texts.length; offset += batchSize) {
+    const slice = texts.slice(offset, offset + batchSize).map((t) => t.slice(0, 6000));
+    let embeddedBatch: Array<number[] | null> | null = null;
+
+    for (const model of EMBEDDING_MODELS) {
+      try {
+        const res = await ai.models.embedContent({
+          model,
+          contents: slice,
+          config: { outputDimensionality: 256 },
+        });
+        if (res.embeddings && res.embeddings.length === slice.length) {
+          embeddedBatch = res.embeddings.map((e) =>
+            e.values && e.values.length > 0 ? e.values.map((v) => Number(v.toFixed(5))) : null
+          );
+          break;
+        }
+      } catch {
+        // Tenta próximo modelo
+      }
+    }
+
+    if (embeddedBatch) {
+      results.push(...embeddedBatch);
+    } else {
+      results.push(...slice.map(() => null));
+    }
+  }
+
+  return results;
+}
 export async function embedSingleText(text: string): Promise<number[] | null> {
   const ai = getGenAI();
   if (!ai || !text.trim()) return null;
@@ -230,11 +268,15 @@ export async function indexKnowledgeSource(params: {
     },
   });
 
-  // Indexa até 35 chunks com embeddings (rápido e econômico em memória)
-  const limitedChunks = chunks.slice(0, 35);
+  // Indexa até 80 chunks usando chamadas em lote (leva ~1s em vez de 80 requisições sequenciais)
+  const limitedChunks = chunks.slice(0, 80);
+  const textsForEmbedding = limitedChunks.map(
+    (c) => `${params.title}${params.authorOrRef ? ` (${params.authorOrRef})` : ''}\n${c}`
+  );
+  const vectors = await embedTextsBatch(textsForEmbedding);
+
   for (let i = 0; i < limitedChunks.length; i++) {
-    const chunkContent = `${params.title}${params.authorOrRef ? ` (${params.authorOrRef})` : ''}\n${limitedChunks[i]}`;
-    const vec = await embedSingleText(chunkContent);
+    const vec = vectors[i];
     await prisma.knowledgeChunk.create({
       data: {
         tenantId: params.tenantId,

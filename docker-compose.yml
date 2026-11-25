@@ -10,7 +10,7 @@ services:
     environment:
       - NODE_ENV=production
       - TZ=America/Sao_Paulo
-      - NODE_OPTIONS=--max-old-space-size=256
+      - NODE_OPTIONS=--max-old-space-size=384
       - DATABASE_URL=file:/app/prisma/dev.db
       - ENCRYPTION_KEY=3cf6e7ab221557c4c8180cc3fe14f017d46c0b91f70ae346b4bf494c5d9720e5
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -28,7 +28,7 @@ services:
       resources:
         limits:
           cpus: '0.60'
-          memory: 384M
+          memory: 512M
         reservations:
           memory: 128M
 

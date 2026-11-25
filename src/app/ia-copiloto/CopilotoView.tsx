@@ -205,8 +205,9 @@ export function CopilotoView({
   const [kTags, setKTags] = useState('');
   const [kContent, setKContent] = useState('');
   const [kPinned, setKPinned] = useState(false);
-  const [pdfBase64, setPdfBase64] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pdfFileName, setPdfFileName] = useState('');
+  const [uploadStatusText, setUploadStatusText] = useState('');
   const [isIndexing, setIsIndexing] = useState(false);
   const [kFilterScope, setKFilterScope] = useState('all_filter');
 
@@ -313,14 +314,11 @@ export function CopilotoView({
     if (!file) return;
     if (!kTitle) setKTitle(file.name.replace(/\.[^.]+$/, ''));
 
+    setSelectedFile(file);
+    setPdfFileName(file.name);
+
     if (file.name.toLowerCase().endsWith('.pdf')) {
       setKType('pdf');
-      setPdfFileName(file.name);
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPdfBase64(String(reader.result || ''));
-      };
-      reader.readAsDataURL(file);
     } else {
       setKType('text');
       const reader = new FileReader();
@@ -335,33 +333,98 @@ export function CopilotoView({
     e.preventDefault();
     if (!kTitle.trim()) return;
     setIsIndexing(true);
+    setUploadStatusText('Iniciando processamento...');
+
     try {
-      const res = await addKnowledgeSourceAction({
-        title: kTitle,
-        sourceType: kType,
-        domainScope: kScope,
-        authorOrRef: kAuthor,
-        sourceUrl: kUrl,
-        rawContent: kContent,
-        pdfBase64: pdfBase64 || undefined,
-        fileName: pdfFileName || undefined,
-        tags: kTags,
-        isPinned: kPinned,
-      });
+      let resultData: any = null;
+
+      // Upload em blocos de 512 KB quando houver arquivo PDF selecionado (nunca estoura limite de 1MB do Nginx/Next)
+      if (selectedFile && kType === 'pdf') {
+        const CHUNK_SIZE = 512 * 1024; // 512 KB por requisição
+        const totalChunks = Math.max(1, Math.ceil(selectedFile.size / CHUNK_SIZE));
+        const uploadId = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+        for (let idx = 0; idx < totalChunks; idx++) {
+          const pct = Math.round(((idx + 1) / totalChunks) * 100);
+          setUploadStatusText(`Enviando arquivo PDF (${pct}%)...`);
+
+          const slice = selectedFile.slice(idx * CHUNK_SIZE, (idx + 1) * CHUNK_SIZE);
+          const fd = new FormData();
+          fd.append('action', 'chunk');
+          fd.append('uploadId', uploadId);
+          fd.append('chunkIndex', String(idx));
+          fd.append('chunk', slice, selectedFile.name);
+
+          const chunkRes = await fetch('/api/knowledge/upload', {
+            method: 'POST',
+            body: fd,
+          });
+          const chunkJson = await chunkRes.json().catch(() => null);
+          if (!chunkRes.ok || !chunkJson?.success) {
+            throw new Error(chunkJson?.error || `Falha ao enviar parte ${idx + 1} do PDF.`);
+          }
+        }
+
+        setUploadStatusText('Extraindo texto integral do PDF com IA e gerando blocos vetoriais...');
+        const finRes = await fetch('/api/knowledge/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'finalize_file',
+            uploadId,
+            fileName: selectedFile.name,
+            title: kTitle,
+            domainScope: kScope,
+            authorOrRef: kAuthor,
+            tags: kTags,
+            isPinned: kPinned,
+          }),
+        });
+        resultData = await finRes.json().catch(() => null);
+        if (!finRes.ok || !resultData?.success) {
+          throw new Error(
+            resultData?.error || 'Falha ao extrair e indexar o conteúdo do PDF.'
+          );
+        }
+      } else {
+        setUploadStatusText('Indexando conteúdo e vetores na Base B.E.M....');
+        const directRes = await fetch('/api/knowledge/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'direct',
+            title: kTitle,
+            sourceType: kType,
+            domainScope: kScope,
+            authorOrRef: kAuthor,
+            sourceUrl: kUrl,
+            rawContent: kContent,
+            tags: kTags,
+            isPinned: kPinned,
+          }),
+        });
+        resultData = await directRes.json().catch(() => null);
+        if (!directRes.ok || !resultData?.success) {
+          throw new Error(resultData?.error || 'Erro ao indexar conhecimento.');
+        }
+      }
+
       setKTitle('');
       setKAuthor('');
       setKUrl('');
       setKTags('');
       setKContent('');
-      setPdfBase64(null);
+      setSelectedFile(null);
       setPdfFileName('');
       setKPinned(false);
-      alert(`Conhecimento indexado com sucesso em ${res.chunkCount} bloco(s) semânticos!`);
+      setUploadStatusText('');
+      alert(`Conhecimento indexado com sucesso em ${resultData.chunkCount} bloco(s) semânticos!`);
       router.refresh();
     } catch (err: any) {
-      alert(err.message || 'Erro ao indexar conhecimento.');
+      alert(err?.message || 'Erro ao indexar conhecimento.');
     } finally {
       setIsIndexing(false);
+      setUploadStatusText('');
     }
   };
 
@@ -1089,7 +1152,7 @@ export function CopilotoView({
                   </label>
                   <textarea
                     rows={6}
-                    required={!pdfBase64}
+                    required={!selectedFile}
                     value={kContent}
                     onChange={(e) => setKContent(e.target.value)}
                     placeholder="Cole suas anotações soltas de seminário, citações comentadas ou orientações técnicas..."
@@ -1121,7 +1184,9 @@ export function CopilotoView({
                 disabled={isIndexing}
                 className="w-full py-2.5 rounded-xl bg-[#1F4D36] text-white text-xs font-bold hover:bg-[#183C2A] disabled:opacity-50"
               >
-                {isIndexing ? 'Extraindo e Indexando Conhecimento...' : 'Indexar na Base B.E.M.'}
+                {isIndexing
+                  ? uploadStatusText || 'Extraindo e Indexando Conhecimento...'
+                  : 'Indexar na Base B.E.M.'}
               </button>
             </form>
           </div>
