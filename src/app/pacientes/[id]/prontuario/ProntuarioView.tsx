@@ -31,6 +31,8 @@ import {
 } from 'lucide-react';
 import { generateSoapAction, saveClinicalRecordAction } from './actions';
 import { getRootCategories, getSituationsByCategory } from '@/lib/protocols';
+import { PatientAiPanel } from './PatientAiPanel';
+import type { DecryptedMemoryItem } from '@/lib/ai/memory';
 
 interface SoapData {
   subjective: string;
@@ -76,6 +78,9 @@ export function ProntuarioView({
   appointmentId,
   history = [],
   emotionsCatalog = [],
+  patientMemories = [],
+  patientPrograms = [],
+  defaultDeliveryMode = 'review',
 }: {
   patient: { 
     id: string; 
@@ -89,9 +94,21 @@ export function ProntuarioView({
   appointmentId?: string;
   history: HistoricalRecord[];
   emotionsCatalog?: EmotionItem[];
+  patientMemories?: DecryptedMemoryItem[];
+  patientPrograms?: Array<{
+    id: string;
+    title: string;
+    goal: string;
+    durationDays: number;
+    currentDay: number;
+    deliveryMode: string;
+    status: string;
+    steps: any[];
+  }>;
+  defaultDeliveryMode?: 'review' | 'auto';
 }) {
   // Aba ativa: se veio da agenda para atendimento imediato abre em 'nova_evolucao', senão mostra o 'historico'
-  const [activeTab, setActiveTab] = useState<'historico' | 'nova_evolucao'>(
+  const [activeTab, setActiveTab] = useState<'historico' | 'nova_evolucao' | 'ia_bem'>(
     appointmentId || history.length === 0 ? 'nova_evolucao' : 'historico'
   );
 
@@ -349,6 +366,19 @@ export function ProntuarioView({
         >
           <Sparkles className="w-4 h-4" />
           Registrar Nova Evolução Clínica SOAP
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('ia_bem')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+            activeTab === 'ia_bem'
+              ? 'bg-[#1F4D36] text-white shadow-sm'
+              : 'text-[#1F4D36] bg-[#EBF3ED]/70 hover:bg-[#EBF3ED]'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          Pós-Sessão, Jornadas & Memória IA ({patientMemories.length})
         </button>
 
         <Link
@@ -1060,6 +1090,24 @@ export function ProntuarioView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* ABA 3: PÓS-SESSÃO, JORNADAS CONTÍNUAS & MEMÓRIA IA B.E.M. */}
+      {/* ========================================================= */}
+      {activeTab === 'ia_bem' && (
+        <PatientAiPanel
+          patient={{ id: patient.id, name: patient.name }}
+          appointmentId={appointmentId}
+          draftRawNotes={rawNotes}
+          draftSoap={soap}
+          draftEmotions={selectedEmotions}
+          draftSituacoes={situacoesList}
+          latestHistoryRecord={history[0]}
+          memories={patientMemories}
+          programs={patientPrograms}
+          defaultDeliveryMode={defaultDeliveryMode}
+        />
       )}
 
       {/* MODAL: Visualização da Descrição Terapêutica da Emoção */}

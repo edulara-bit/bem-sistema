@@ -80,6 +80,138 @@ export async function saveClinicalRecordAction({
   revalidatePath('/agenda');
   revalidatePath('/pacientes');
   revalidatePath('/');
+
+  // Dispara evento de sessão concluída para fluxos n8n (se configurado)
+  try {
+    const { fireN8nWebhook } = await import('@/lib/ai/orchestrator');
+    await fireN8nWebhook(tenant.id, 'session.completed', {
+      recordId: record.id,
+      patientId,
+      patientName: patient?.name || null,
+      appointmentId: appointmentId || null,
+      emocoesTrabalhadas,
+      situacoesCount: situacoes.length,
+    });
+  } catch {
+    // Não bloqueia o salvamento clínico caso webhook falhe
+  }
+
   return { success: true, recordId: record.id };
+}
+
+export async function compilePatientFeedbackAction(payload: {
+  patientId: string;
+  appointmentId?: string;
+  rawNotes?: string;
+  soap?: { subjective: string; objective: string; assessment: string; plan: string };
+  emocoesTrabalhadas?: string[];
+  situacoes?: {
+    categoria: string;
+    situacao: string;
+    complemento?: string;
+    emocoes?: string[];
+  }[];
+}) {
+  const tenant = await getCurrentTenant();
+  if (!tenant) throw new Error('Tenant não encontrado.');
+
+  const { compilePostSessionFeedback } = await import('@/lib/ai/orchestrator');
+  const res = await compilePostSessionFeedback({
+    tenantId: tenant.id,
+    patientId: payload.patientId,
+    appointmentId: payload.appointmentId,
+    rawNotes: payload.rawNotes,
+    soap: payload.soap,
+    emocoesTrabalhadas: payload.emocoesTrabalhadas,
+    situacoes: payload.situacoes,
+    enqueueDispatch: false,
+  });
+
+  revalidatePath(`/pacientes/${payload.patientId}/prontuario`);
+  revalidatePath('/ia-copiloto');
+  return res;
+}
+
+export async function dispatchPatientFeedbackAction(payload: {
+  patientId: string;
+  appointmentId?: string;
+  messageText: string;
+  deliveryMode: 'review' | 'auto';
+}) {
+  const tenant = await getCurrentTenant();
+  if (!tenant) throw new Error('Tenant não encontrado.');
+
+  const { queueOrSendPatientMessage } = await import('@/lib/ai/orchestrator');
+  const db = getTenantDb(tenant.id);
+  const patient = await db.patients.findUnique(payload.patientId);
+
+  const res = await queueOrSendPatientMessage({
+    tenantId: tenant.id,
+    agentSlug: 'pos_sessao',
+    patientId: payload.patientId,
+    appointmentId: payload.appointmentId || null,
+    title: `Feedback Pós-Sessão — ${patient?.name || 'Paciente'}`,
+    messageText: payload.messageText,
+    deliveryModeOverride: payload.deliveryMode,
+  });
+
+  revalidatePath(`/pacientes/${payload.patientId}/prontuario`);
+  revalidatePath('/ia-copiloto');
+  return res;
+}
+
+export async function createPatientProgramFromProntuarioAction(payload: {
+  patientId: string;
+  themeOrGoal: string;
+  durationDays: number;
+  deliveryMode: 'review' | 'auto';
+  sendFirstDayNow: boolean;
+}) {
+  const tenant = await getCurrentTenant();
+  if (!tenant) throw new Error('Tenant não encontrado.');
+
+  const { generateConsciousnessProgram } = await import('@/lib/ai/orchestrator');
+  const res = await generateConsciousnessProgram({
+    tenantId: tenant.id,
+    patientId: payload.patientId,
+    themeOrGoal: payload.themeOrGoal,
+    durationDays: payload.durationDays,
+    deliveryMode: payload.deliveryMode,
+    sendFirstDayNow: payload.sendFirstDayNow,
+  });
+
+  revalidatePath(`/pacientes/${payload.patientId}/prontuario`);
+  revalidatePath('/ia-copiloto');
+  return {
+    success: true,
+    title: res.program.title,
+    dispatchStatus: res.firstDayDispatch?.status || null,
+  };
+}
+
+export async function addPatientMemoryFromProntuarioAction(payload: {
+  patientId: string;
+  category: string;
+  title: string;
+  content: string;
+}) {
+  const tenant = await getCurrentTenant();
+  if (!tenant) throw new Error('Tenant não encontrado.');
+
+  const { createStructuredMemory } = await import('@/lib/ai/memory');
+  await createStructuredMemory({
+    tenantId: tenant.id,
+    scope: 'atendimento',
+    patientId: payload.patientId,
+    category: payload.category,
+    title: payload.title,
+    content: payload.content,
+    importance: 4,
+    source: 'prontuario',
+  });
+
+  revalidatePath(`/pacientes/${payload.patientId}/prontuario`);
+  revalidatePath('/ia-copiloto');
+  return { success: true };
 }
 

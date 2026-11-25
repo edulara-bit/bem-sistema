@@ -1,0 +1,69 @@
+{
+  "name": "B.E.M. — Automação Diária de Jornadas & Escuta de Pacientes",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-daily-bem",
+      "name": "Todo Dia às 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 220]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://bem-app:3000/api/v1/programs/advance",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-BEM-API-Key",
+              "value": "COLE_SUA_CHAVE_AQUI"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-advance-programs",
+      "name": "Avançar Desafios B.E.M.",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 220]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bem-eventos",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-bem-events",
+      "name": "Receber Eventos do B.E.M.",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 460]
+    }
+  ],
+  "connections": {
+    "Todo Dia às 08:00": {
+      "main": [
+        [
+          {
+            "node": "Avançar Desafios B.E.M.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

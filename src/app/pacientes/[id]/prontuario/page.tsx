@@ -1,6 +1,8 @@
 import { getTenantDb, prisma } from '@/lib/prisma';
 import { getCurrentTenant } from '@/lib/current-tenant';
 import { decryptText } from '@/lib/crypto';
+import { ensureAiTables } from '@/lib/ai/init-db';
+import { listStructuredMemories } from '@/lib/ai/memory';
 import { ProntuarioView } from './ProntuarioView';
 import { notFound } from 'next/navigation';
 import fs from 'fs';
@@ -119,6 +121,26 @@ export default async function ProntuarioPage({
     };
   });
 
+  await ensureAiTables(tenant.id);
+
+  const [patientMemories, patientPrograms, freshTenant] = await Promise.all([
+    listStructuredMemories({
+      tenantId: tenant.id,
+      scope: 'atendimento',
+      patientId: patient.id,
+      limit: 40,
+    }),
+    prisma.patientProgram.findMany({
+      where: { tenantId: tenant.id, patientId: patient.id },
+      orderBy: { updatedAt: 'desc' },
+      take: 10,
+    }),
+    prisma.tenant.findUnique({
+      where: { id: tenant.id },
+      select: { aiDefaultDeliveryMode: true },
+    }),
+  ]);
+
   return (
     <ProntuarioView
       patient={{
@@ -140,6 +162,18 @@ export default async function ProntuarioPage({
         code: e.code || e.letra || '',
         type: e.type || e.tipo || 'Positiva',
       }))}
+      patientMemories={patientMemories}
+      patientPrograms={patientPrograms.map((p) => ({
+        id: p.id,
+        title: p.title,
+        goal: p.goal || '',
+        durationDays: p.durationDays,
+        currentDay: p.currentDay,
+        deliveryMode: p.deliveryMode,
+        status: p.status,
+        steps: JSON.parse(p.stepsJson || '[]'),
+      }))}
+      defaultDeliveryMode={(freshTenant?.aiDefaultDeliveryMode as 'review' | 'auto') || 'review'}
     />
   );
 }

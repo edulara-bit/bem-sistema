@@ -1,5 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
 function getGenAI() {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -85,7 +87,7 @@ Responda OBRIGATORIAMENTE em JSON válido com a seguinte estrutura de chaves:
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: DEFAULT_GEMINI_MODEL,
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -148,7 +150,7 @@ Responda OBRIGATORIAMENTE em JSON com:
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: DEFAULT_GEMINI_MODEL,
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -193,7 +195,7 @@ Diretrizes:
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: DEFAULT_GEMINI_MODEL,
       contents: prompt,
     });
 

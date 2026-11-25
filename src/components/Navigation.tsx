@@ -28,7 +28,7 @@ export const navItems = [
   { href: '/captacao', label: 'Captação & Funil', icon: UserPlus },
   { href: '/financeiro', label: 'Financeiro', icon: DollarSign },
   { href: '/metas', label: 'Metas & Burnout', icon: Target },
-  { href: '/ia-copiloto', label: 'Copiloto IA', icon: Sparkles },
+  { href: '/ia-copiloto', label: 'Agentes B.E.M.', icon: Sparkles },
   { href: '/configuracoes', label: 'Configurações', icon: Settings },
 ];
 

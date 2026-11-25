@@ -41,15 +41,28 @@ model Tenant {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  // Configurações da Central de Agentes B.E.M. & n8n
+  aiApiKey              String?
+  n8nWebhookUrl         String?
+  aiDefaultDeliveryMode String  @default("review") // 'review' (revisão humana) | 'auto' (disparo direto)
+  aiCorePhilosophy      String? // Diretrizes filosóficas mestras do método B.E.M.
+
   users        User[]
   patients     Patient[]
   appointments Appointment[]
   records      ClinicalRecord[]
   finances     FinancialTransaction[]
   leads        Lead[]
-  availabilityRules AvailabilityRule[]
-  blockedDates      BlockedDate[]
-  blockedSlots      BlockedSlot[]
+  availabilityRules  AvailabilityRule[]
+  blockedDates       BlockedDate[]
+  blockedSlots       BlockedSlot[]
+  aiAgentConfigs     AiAgentConfig[]
+  knowledgeSources   KnowledgeSource[]
+  knowledgeChunks    KnowledgeChunk[]
+  structuredMemories StructuredMemory[]
+  patientPrograms    PatientProgram[]
+  aiDispatches       AiMessageDispatch[]
+  agentThreads       AgentThread[]
 }
 
 model User {
@@ -89,6 +102,10 @@ model Patient {
   appointments Appointment[]
   records      ClinicalRecord[]
   finances     FinancialTransaction[]
+  memories     StructuredMemory[]
+  programs     PatientProgram[]
+  aiDispatches AiMessageDispatch[]
+  agentThreads AgentThread[]
 
   @@index([tenantId])
 }
@@ -259,6 +276,163 @@ model Emotion {
 
   @@index([tenantId])
   @@index([title])
+}
+
+model AiAgentConfig {
+  id           String   @id @default(cuid())
+  tenantId     String
+  slug         String   // 'marketing' | 'pos_sessao' | 'expansao' | 'gestao'
+  name         String
+  description  String?
+  systemPrompt String   // Instruções customizáveis deste agente
+  deliveryMode String   @default("review") // 'review' (revisão humana) | 'auto' (disparo direto)
+  autoMemory   Boolean  @default(true)
+  webhookUrl   String?  // Webhook dedicado no n8n (opcional)
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+}
+
+model KnowledgeSource {
+  id          String   @id @default(cuid())
+  tenantId    String
+  title       String
+  sourceType  String   @default("text") // 'directive' | 'seminar_note' | 'bibliography' | 'pdf' | 'text' | 'url'
+  domainScope String   @default("all")  // 'all' | 'marketing' | 'pos_sessao' | 'expansao' | 'gestao'
+  authorOrRef String?  // Autor, livro, seminário ou evento
+  sourceUrl   String?
+  rawContent  String
+  tags        String?
+  isPinned    Boolean  @default(false) // Sempre presente no contexto como regra fundamental
+  chunkCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  chunks      KnowledgeChunk[]
+
+  @@index([tenantId, domainScope])
+}
+
+model KnowledgeChunk {
+  id            String   @id @default(cuid())
+  tenantId      String
+  sourceId      String
+  chunkIndex    Int
+  content       String
+  embeddingJson String?  // Array JSON de floats gerado pelo Gemini Embedding
+  createdAt     DateTime @default(now())
+
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  source        KnowledgeSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([sourceId])
+}
+
+model StructuredMemory {
+  id            String   @id @default(cuid())
+  tenantId      String
+  scope         String   // 'marketing' | 'gestao' | 'expansao' | 'atendimento'
+  patientId     String?  // Preenchido quando scope = 'atendimento'
+  category      String   @default("geral")
+  title         String
+  contentEnc    String   // Criptografado AES-256-GCM (sigilo LGPD para memórias clínicas)
+  importance    Int      @default(3) // 1 a 5
+  isPinned      Boolean  @default(false)
+  source        String   @default("manual") // 'manual' | 'agent_auto' | 'prontuario' | 'n8n'
+  embeddingJson String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient       Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, scope])
+  @@index([tenantId, patientId])
+}
+
+model PatientProgram {
+  id                String   @id @default(cuid())
+  tenantId          String
+  patientId         String?  // Null = Modelo/Template reutilizável; Preenchido = Programa ativo do paciente
+  title             String
+  goal              String?
+  durationDays      Int      @default(7)
+  stepsJson         String   // JSON array das etapas/dias do programa
+  deliveryMode      String   @default("review") // 'review' | 'auto'
+  status            String   @default("active") // 'template' | 'active' | 'paused' | 'completed'
+  currentDay        Int      @default(1)
+  preferredSendHour String   @default("08:00")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient           Patient?            @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  dispatches        AiMessageDispatch[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, patientId])
+}
+
+model AiMessageDispatch {
+  id            String    @id @default(cuid())
+  tenantId      String
+  agentSlug     String    // 'pos_sessao' | 'expansao' | 'gestao' | 'marketing'
+  patientId     String?
+  appointmentId String?
+  programId     String?
+  channel       String    @default("whatsapp") // 'whatsapp' | 'n8n_webhook'
+  deliveryMode  String    @default("review")   // 'review' | 'auto'
+  title         String
+  messageText   String
+  status        String    @default("pending_review") // 'pending_review' | 'sent' | 'failed' | 'rejected'
+  errorMsg      String?
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient       Patient?        @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  program       PatientProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status])
+  @@index([tenantId, patientId])
+}
+
+model AgentThread {
+  id        String         @id @default(cuid())
+  tenantId  String
+  agentSlug String
+  patientId String?
+  title     String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient   Patient?       @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  messages  AgentMessage[]
+
+  @@index([tenantId, agentSlug])
+}
+
+model AgentMessage {
+  id                    String      @id @default(cuid())
+  threadId              String
+  role                  String      // 'user' | 'assistant'
+  content               String
+  memoriesExtractedJson String?
+  sourcesUsedJson       String?
+  createdAt             DateTime    @default(now())
+
+  thread                AgentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
 }
 
 
