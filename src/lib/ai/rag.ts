@@ -8,8 +8,8 @@ function getGenAI() {
 }
 
 export const GENERATION_MODELS = [
-  process.env.GEMINI_MODEL || 'gemini-2.5-flash',
-  'gemini-2.0-flash',
+  process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+  'gemini-2.5-flash',
 ];
 
 const EMBEDDING_MODELS = ['gemini-embedding-001', 'text-embedding-004'];

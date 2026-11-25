@@ -14,6 +14,7 @@ services:
       - DATABASE_URL=file:/app/prisma/dev.db
       - ENCRYPTION_KEY=3cf6e7ab221557c4c8180cc3fe14f017d46c0b91f70ae346b4bf494c5d9720e5
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.8-flash}
       - JWT_SECRET=bem_secret_jwt_therapist_platform_2026
       - CRON_SECRET=bem_cron_token_secret_hostinger
       - NEXT_PUBLIC_APP_URL=https://bem.edulara.com.br
