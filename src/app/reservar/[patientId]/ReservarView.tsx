@@ -67,9 +67,15 @@ export function ReservarView({ patient, therapist, availableDays }: ReservarView
         modality,
         notes,
       });
+
+      if (!res.success) {
+        alert(res.error || 'Erro ao confirmar agendamento.');
+        return;
+      }
+
       setConfirmedBooking(res);
     } catch (err: any) {
-      alert(err.message || 'Erro ao confirmar agendamento.');
+      alert(err.message || 'Erro inesperado ao confirmar agendamento.');
     } finally {
       setIsSubmitting(false);
     }
