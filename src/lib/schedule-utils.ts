@@ -197,16 +197,12 @@ export async function getPatientBookingAvailability(tenantId: string): Promise<D
 export async function getAdminWeeklySchedule(tenantId: string, weekStartDateStr: string) {
   const weeklyRules = await getTenantWeeklyRules(tenantId);
 
-  // Início da semana passada por parâmetro (ou Segunda-feira mais próxima)
-  const [y, m, d] = weekStartDateStr.split('-').map(Number);
-  const weekStart = new Date(y, m - 1, d);
+  // Início da semana determinístico no fuso horário de São Paulo (UTC-3)
+  const weekStart = new Date(`${weekStartDateStr}T00:00:00-03:00`);
+  const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  // Fim da semana (7 dias)
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-
-  const startStr = weekStart.toISOString().split('T')[0];
-  const endStr = weekEnd.toISOString().split('T')[0];
+  const { dateStr: startStr } = formatAppointmentDateTime(weekStart);
+  const { dateStr: endStr } = formatAppointmentDateTime(new Date(weekEnd.getTime() - 1000));
 
   // Buscar bloqueios de datas
   const blockedDates = await prisma.blockedDate.findMany({
@@ -220,11 +216,11 @@ export async function getAdminWeeklySchedule(tenantId: string, weekStartDateStr:
   });
   const blockedSlotsMap = new Map(blockedSlots.map((s) => [`${s.date}_${s.time}`, s]));
 
-  // Buscar agendamentos
+  // Buscar agendamentos dentro da semana
   const appointments = await prisma.appointment.findMany({
     where: {
       tenantId,
-      scheduledAt: { gte: weekStart, lte: new Date(weekEnd.getTime() + 86400000) },
+      scheduledAt: { gte: weekStart, lt: weekEnd },
       status: { notIn: ['cancelled'] },
     },
     include: { patient: true },
@@ -247,11 +243,12 @@ export async function getAdminWeeklySchedule(tenantId: string, weekStartDateStr:
   const allHours = Array.from(allHoursSet).sort();
 
   const days: DaySchedule[] = [];
-  const curr = new Date(weekStart);
 
   for (let i = 0; i < 7; i++) {
-    const dateStr = curr.toISOString().split('T')[0];
-    const dayOfWeek = curr.getDay();
+    // Meio-dia para neutralizar qualquer desvio de borda de fuso
+    const dayDate = new Date(weekStart.getTime() + i * 24 * 60 * 60 * 1000 + 12 * 60 * 60 * 1000);
+    const { dateStr, displayDate } = formatAppointmentDateTime(dayDate);
+    const dayOfWeek = dayDate.getDay();
     const dayRule = weeklyRules[dayOfWeek] || { enabled: false, hours: [] };
     const isHoliday = blockedDatesMap.has(dateStr);
     const holidayReason = blockedDatesMap.get(dateStr) || null;
@@ -296,14 +293,12 @@ export async function getAdminWeeklySchedule(tenantId: string, weekStartDateStr:
       date: dateStr,
       dayOfWeek,
       dayName: DAY_NAMES[dayOfWeek],
-      formattedDate: `${curr.getDate().toString().padStart(2, '0')}/${(curr.getMonth() + 1).toString().padStart(2, '0')}`,
+      formattedDate: `${displayDate.slice(0, 5)}`,
       isHoliday,
       holidayReason,
       slots,
       totalAvailable: slots.filter((s) => s.available).length,
     });
-
-    curr.setDate(curr.getDate() + 1);
   }
 
   return {

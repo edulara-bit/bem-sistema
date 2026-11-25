@@ -72,13 +72,83 @@ export async function cancelAppointmentAction(id: string, reason?: string) {
   if (!tenant) throw new Error('Tenant não encontrado.');
 
   const db = getTenantDb(tenant.id);
+  const cancelNote = reason ? `Cancelado: ${reason}` : 'Cancelado pelo terapeuta';
+
   await db.appointments.update(id, {
     status: 'cancelled',
-    notes: reason ? `Cancelado: ${reason}` : 'Cancelado pelo terapeuta',
+    notes: cancelNote,
+  });
+
+  // Também cancela a cobrança financeira pendente associada a esta sessão, se existir
+  const { prisma: prismaClient } = await import('@/lib/prisma');
+  await prismaClient.financialTransaction.updateMany({
+    where: {
+      tenantId: tenant.id,
+      appointmentId: id,
+      status: 'pending',
+    },
+    data: {
+      status: 'cancelled',
+    },
   });
 
   revalidatePath('/agenda');
   revalidatePath('/');
+  revalidatePath('/financeiro');
+  return { success: true };
+}
+
+export async function reactivateAppointmentAction(id: string) {
+  const tenant = await getCurrentTenant();
+  if (!tenant) throw new Error('Tenant não encontrado.');
+
+  const { prisma: prismaClient } = await import('@/lib/prisma');
+  const app = await prismaClient.appointment.findFirst({
+    where: { id, tenantId: tenant.id },
+  });
+
+  if (!app) {
+    throw new Error('Sessão não encontrada.');
+  }
+
+  // Verifica se o horário já está ocupado por outra sessão ativa
+  const conflicting = await prismaClient.appointment.findFirst({
+    where: {
+      tenantId: tenant.id,
+      scheduledAt: app.scheduledAt,
+      status: { notIn: ['cancelled'] },
+      id: { not: id },
+    },
+  });
+
+  if (conflicting) {
+    throw new Error('Não é possível reativar: já existe outra sessão ativa marcada neste mesmo dia e horário.');
+  }
+
+  // Reativa a sessão
+  await prismaClient.appointment.update({
+    where: { id },
+    data: {
+      status: 'scheduled',
+      notes: app.notes ? app.notes.replace(/^Cancelado:?.*$/i, '').trim() || null : null,
+    },
+  });
+
+  // Reativa a transação financeira se estava cancelada
+  await prismaClient.financialTransaction.updateMany({
+    where: {
+      tenantId: tenant.id,
+      appointmentId: id,
+      status: 'cancelled',
+    },
+    data: {
+      status: 'pending',
+    },
+  });
+
+  revalidatePath('/agenda');
+  revalidatePath('/');
+  revalidatePath('/financeiro');
   return { success: true };
 }
 

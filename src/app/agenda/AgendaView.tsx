@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Calendar as CalendarIcon, 
   Clock, 
@@ -36,12 +36,13 @@ import {
   updateAppointmentStatusAction,
   rescheduleAppointmentAction,
   cancelAppointmentAction,
+  reactivateAppointmentAction,
   toggleSlotBlockAction,
   blockFullDateAction,
   unblockFullDateAction,
   saveWeeklyRulesAction
 } from './actions';
-import { DAY_NAMES } from '@/lib/schedule-utils';
+import { DAY_NAMES, formatAppointmentDateTime } from '@/lib/schedule-utils';
 
 interface Patient {
   id: string;
@@ -99,11 +100,18 @@ export function AgendaView({
 }: AgendaViewProps) {
   const router = useRouter();
 
+  // Estado local para reatividade imediata
+  const [appointmentsList, setAppointmentsList] = useState<Appointment[]>(appointments);
+
+  useEffect(() => {
+    setAppointmentsList(appointments);
+  }, [appointments]);
+
   // Abas principais
   const [activeTab, setActiveTab] = useState<'grid' | 'list' | 'settings'>('grid');
 
   // Filtro da aba lista
-  const [filter, setFilter] = useState<'all' | 'today' | 'upcoming'>('all');
+  const [filter, setFilter] = useState<'active' | 'today' | 'upcoming' | 'cancelled' | 'all'>('active');
 
   // Modais
   const [showModal, setShowModal] = useState(false);
@@ -140,7 +148,7 @@ export function AgendaView({
   const [holidayReason, setHolidayReason] = useState('');
   const [isBlockingHoliday, setIsBlockingHoliday] = useState(false);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const { dateStr: todayStr } = formatAppointmentDateTime(new Date());
 
   // Navegação da semana
   const currentWeekDate = new Date(weeklySchedule.weekStartStr + 'T00:00:00');
@@ -167,6 +175,7 @@ export function AgendaView({
     setBlockingLoadingKey(key);
     try {
       await toggleSlotBlockAction(date, time);
+      router.refresh();
     } catch (err: any) {
       alert('Erro ao alterar disponibilidade do horário: ' + err.message);
     } finally {
@@ -183,6 +192,7 @@ export function AgendaView({
       await blockFullDateAction(holidayDate, holidayReason || 'Feriado / Recesso');
       setHolidayDate('');
       setHolidayReason('');
+      router.refresh();
     } catch (err: any) {
       alert('Erro ao bloquear data: ' + err.message);
     } finally {
@@ -194,6 +204,7 @@ export function AgendaView({
     if (!confirm(`Deseja desbloquear e liberar os horários do dia ${date}?`)) return;
     try {
       await unblockFullDateAction(date);
+      router.refresh();
     } catch (err: any) {
       alert('Erro ao desbloquear data: ' + err.message);
     }
@@ -209,6 +220,7 @@ export function AgendaView({
     try {
       await rescheduleAppointmentAction(rescheduleData.id, newDate, newTime);
       setRescheduleData(null);
+      router.refresh();
     } catch (err: any) {
       alert('Erro ao remarcar sessão: ' + err.message);
     } finally {
@@ -221,12 +233,53 @@ export function AgendaView({
     setIsProcessingAction(true);
     try {
       await cancelAppointmentAction(cancelData.id, cancelReason);
+      setAppointmentsList((prev) =>
+        prev.map((a) =>
+          a.id === cancelData.id
+            ? {
+                ...a,
+                status: 'cancelled',
+                notes: cancelReason ? `Cancelado: ${cancelReason}` : 'Cancelado pelo terapeuta',
+              }
+            : a
+        )
+      );
       setCancelData(null);
       setCancelReason('');
+      router.refresh();
     } catch (err: any) {
       alert('Erro ao cancelar sessão: ' + err.message);
     } finally {
       setIsProcessingAction(false);
+    }
+  };
+
+  const handleReactivateAppointment = async (id: string) => {
+    if (!confirm('Deseja reativar este agendamento para o mesmo horário?')) return;
+    setIsProcessingAction(true);
+    try {
+      await reactivateAppointmentAction(id);
+      setAppointmentsList((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, status: 'scheduled' } : a))
+      );
+      router.refresh();
+    } catch (err: any) {
+      alert('Erro ao reativar sessão: ' + err.message);
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  const handleStatusChange = async (id: string, status: string) => {
+    setAppointmentsList((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, status } : a))
+    );
+    try {
+      await updateAppointmentStatusAction(id, status);
+      router.refresh();
+    } catch (err: any) {
+      alert('Erro ao atualizar status: ' + err.message);
+      router.refresh();
     }
   };
 
@@ -241,6 +294,7 @@ export function AgendaView({
       }));
       await saveWeeklyRulesAction(payload);
       alert('Configuração de horários semanais salva com sucesso!');
+      router.refresh();
     } catch (err: any) {
       alert('Erro ao salvar horários: ' + err.message);
     } finally {
@@ -248,16 +302,25 @@ export function AgendaView({
     }
   };
 
-  const filteredAppointments = appointments.filter((app) => {
-    const appDate = new Date(app.scheduledAt).toISOString().split('T')[0];
-    if (filter === 'today') return appDate === todayStr;
-    if (filter === 'upcoming') return appDate >= todayStr;
-    return true;
-  });
+  const activeCount = appointmentsList.filter((a) => a.status !== 'cancelled').length;
+  const cancelledCount = appointmentsList.filter((a) => a.status === 'cancelled').length;
+  const todayCount = appointmentsList.filter((a) => {
+    const { dateStr: appDate } = formatAppointmentDateTime(a.scheduledAt);
+    return appDate === todayStr && a.status !== 'cancelled';
+  }).length;
+  const upcomingCount = appointmentsList.filter((a) => {
+    const { dateStr: appDate } = formatAppointmentDateTime(a.scheduledAt);
+    return appDate >= todayStr && a.status !== 'cancelled';
+  }).length;
 
-  const handleStatusChange = async (id: string, status: string) => {
-    await updateAppointmentStatusAction(id, status);
-  };
+  const filteredAppointments = appointmentsList.filter((app) => {
+    const { dateStr: appDate } = formatAppointmentDateTime(app.scheduledAt);
+    if (filter === 'active') return app.status !== 'cancelled';
+    if (filter === 'today') return appDate === todayStr && app.status !== 'cancelled';
+    if (filter === 'upcoming') return appDate >= todayStr && app.status !== 'cancelled';
+    if (filter === 'cancelled') return app.status === 'cancelled';
+    return true; // 'all'
+  });
 
   // Gerador de Link para Paciente
   const getBookingLink = (patientId: string) => {
@@ -578,32 +641,56 @@ export function AgendaView({
       {/* ================= ABA 2: LISTA TRADICIONAL DE SESSÕES ================= */}
       {activeTab === 'list' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-[#E8E5DF] shadow-sm">
-            <h2 className="text-sm font-bold text-[#222924]">Lista de Consultas</h2>
-            <div className="bg-[#FBF9F5] p-1 rounded-xl border border-[#E8E5DF] flex text-xs font-semibold text-[#6B726B]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-[#E8E5DF] shadow-sm">
+            <div>
+              <h2 className="text-sm font-bold text-[#222924]">Lista de Consultas</h2>
+              <p className="text-xs text-[#6B726B] mt-0.5">Gerencie os status e histórico de todas as sessões agendadas.</p>
+            </div>
+            <div className="bg-[#FBF9F5] p-1 rounded-xl border border-[#E8E5DF] flex flex-wrap text-xs font-semibold text-[#6B726B] gap-1">
               <button
-                onClick={() => setFilter('all')}
+                type="button"
+                onClick={() => setFilter('active')}
                 className={`px-3 py-1.5 rounded-lg transition-all ${
-                  filter === 'all' ? 'bg-white text-[#1F4D36] shadow-xs' : ''
+                  filter === 'active' ? 'bg-[#1F4D36] text-white shadow-xs' : 'hover:text-[#222924]'
                 }`}
               >
-                Todos ({appointments.length})
+                Ativas ({activeCount})
               </button>
               <button
+                type="button"
                 onClick={() => setFilter('today')}
                 className={`px-3 py-1.5 rounded-lg transition-all ${
-                  filter === 'today' ? 'bg-white text-[#1F4D36] shadow-xs' : ''
+                  filter === 'today' ? 'bg-[#1F4D36] text-white shadow-xs' : 'hover:text-[#222924]'
                 }`}
               >
-                Hoje
+                Hoje ({todayCount})
               </button>
               <button
+                type="button"
                 onClick={() => setFilter('upcoming')}
                 className={`px-3 py-1.5 rounded-lg transition-all ${
-                  filter === 'upcoming' ? 'bg-white text-[#1F4D36] shadow-xs' : ''
+                  filter === 'upcoming' ? 'bg-[#1F4D36] text-white shadow-xs' : 'hover:text-[#222924]'
                 }`}
               >
-                Próximos
+                Próximas ({upcomingCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter('cancelled')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  filter === 'cancelled' ? 'bg-red-600 text-white shadow-xs' : 'hover:text-red-600'
+                }`}
+              >
+                Canceladas ({cancelledCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter('all')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  filter === 'all' ? 'bg-gray-800 text-white shadow-xs' : 'hover:text-[#222924]'
+                }`}
+              >
+                Todas ({appointmentsList.length})
               </button>
             </div>
           </div>
@@ -631,31 +718,50 @@ export function AgendaView({
                   minute: '2-digit',
                 });
                 const rawDateStr = dateObj.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+                const isCancelled = app.status === 'cancelled';
 
                 return (
                   <div
                     key={app.id}
-                    className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E8E5DF] shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    className={`bg-white p-4 sm:p-5 rounded-2xl border border-[#E8E5DF] shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                      isCancelled ? 'opacity-75 hover:opacity-100 bg-[#FAF9F6]' : ''
+                    }`}
                   >
                     <div className="flex items-start gap-4">
-                      <div className="px-3 py-2 rounded-xl bg-[#EBF3ED] text-[#1F4D36] font-bold text-center shrink-0">
+                      <div
+                        className={`px-3 py-2 rounded-xl font-bold text-center shrink-0 ${
+                          isCancelled
+                            ? 'bg-red-50 text-red-700 border border-red-200'
+                            : 'bg-[#EBF3ED] text-[#1F4D36]'
+                        }`}
+                      >
                         <div className="text-xs">{dateFormatted.split(',')[0]}</div>
                         <div className="text-sm">{timeFormatted}</div>
                       </div>
 
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-[#222924] text-base">{app.patient.name}</h3>
-                          <span
-                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                              app.status === 'confirmed'
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : app.status === 'completed'
-                                ? 'bg-blue-50 text-blue-700'
-                                : 'bg-amber-50 text-amber-700'
+                          <h3
+                            className={`font-bold text-base ${
+                              isCancelled ? 'text-gray-500 line-through' : 'text-[#222924]'
                             }`}
                           >
-                            {app.status === 'confirmed'
+                            {app.patient.name}
+                          </h3>
+                          <span
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                              isCancelled
+                                ? 'bg-red-50 text-red-700 border-red-200'
+                                : app.status === 'confirmed'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : app.status === 'completed'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}
+                          >
+                            {isCancelled
+                              ? 'Cancelado'
+                              : app.status === 'confirmed'
                               ? 'Confirmado'
                               : app.status === 'completed'
                               ? 'Realizado'
@@ -682,7 +788,13 @@ export function AgendaView({
                         </div>
 
                         {app.notes && (
-                          <p className="text-xs text-[#6B726B] bg-[#FBF9F5] px-2 py-1 rounded-lg border border-[#E8E5DF] inline-block">
+                          <p
+                            className={`text-xs px-2.5 py-1 rounded-lg border inline-block ${
+                              isCancelled
+                                ? 'bg-red-50/70 border-red-200 text-red-800'
+                                : 'bg-[#FBF9F5] border-[#E8E5DF] text-[#6B726B]'
+                            }`}
+                          >
                             {app.notes}
                           </p>
                         )}
@@ -690,54 +802,78 @@ export function AgendaView({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setRescheduleData({
-                            id: app.id,
-                            patientName: app.patient.name,
-                            date: rawDateStr,
-                            time: timeFormatted,
-                          })
-                        }
-                        className="px-2.5 py-1.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] hover:bg-white text-xs font-semibold flex items-center gap-1 transition-all"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5 text-gray-500" />
-                        Remarcar
-                      </button>
+                      {isCancelled ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleReactivateAppointment(app.id)}
+                            disabled={isProcessingAction}
+                            className="px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 text-emerald-700" />
+                            Reativar Sessão
+                          </button>
+                          <Link
+                            href={`/pacientes/${app.patientId}/prontuario?appointmentId=${app.id}`}
+                            className="px-3 py-1.5 rounded-xl border border-[#E8E5DF] bg-white text-[#222924] text-xs font-semibold hover:bg-gray-50 flex items-center gap-1 transition-all"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-gray-500" />
+                            Prontuário
+                          </Link>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setRescheduleData({
+                                id: app.id,
+                                patientName: app.patient.name,
+                                date: rawDateStr,
+                                time: timeFormatted,
+                              })
+                            }
+                            className="px-2.5 py-1.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] hover:bg-white text-xs font-semibold flex items-center gap-1 transition-all"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 text-gray-500" />
+                            Remarcar
+                          </button>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setCancelData({
-                            id: app.id,
-                            patientName: app.patient.name,
-                            date: rawDateStr,
-                            time: timeFormatted,
-                          })
-                        }
-                        className="px-2.5 py-1.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold flex items-center gap-1 transition-all"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Cancelar
-                      </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCancelData({
+                                id: app.id,
+                                patientName: app.patient.name,
+                                date: rawDateStr,
+                                time: timeFormatted,
+                              })
+                            }
+                            className="px-2.5 py-1.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold flex items-center gap-1 transition-all"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Cancelar
+                          </button>
 
-                      <Link
-                        href={`/pacientes/${app.patientId}/prontuario?appointmentId=${app.id}`}
-                        className="px-3 py-1.5 rounded-xl bg-[#1F4D36] text-white text-xs font-semibold hover:bg-[#183C2A] flex items-center gap-1 transition-all shadow-xs"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        Prontuário
-                      </Link>
+                          <Link
+                            href={`/pacientes/${app.patientId}/prontuario?appointmentId=${app.id}`}
+                            className="px-3 py-1.5 rounded-xl bg-[#1F4D36] text-white text-xs font-semibold hover:bg-[#183C2A] flex items-center gap-1 transition-all shadow-xs"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            Prontuário
+                          </Link>
 
-                      {app.status === 'scheduled' && (
-                        <button
-                          onClick={() => handleStatusChange(app.id, 'confirmed')}
-                          className="px-2.5 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 text-xs font-semibold hover:bg-emerald-100 flex items-center gap-1 transition-all"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                          Confirmar
-                        </button>
+                          {app.status === 'scheduled' && (
+                            <button
+                              type="button"
+                              onClick={() => handleStatusChange(app.id, 'confirmed')}
+                              className="px-2.5 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 text-xs font-semibold hover:bg-emerald-100 flex items-center gap-1 transition-all"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              Confirmar
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
