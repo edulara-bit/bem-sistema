@@ -84,6 +84,26 @@ export async function getOrCreateWhatsAppInstance(tenantSlug: string): Promise<{
 }
 
 /**
+ * Consulta o estado de conexão ao vivo da instância diretamente na Evolution API
+ */
+export async function getLiveWhatsAppState(instanceName: string): Promise<{ state: string; error?: string }> {
+  try {
+    const statusRes = await fetch(`${EVOLUTION_URL}/instance/connectionState/${instanceName}`, {
+      headers: { apikey: EVOLUTION_KEY },
+      cache: 'no-store',
+    });
+    if (!statusRes.ok) {
+      const err = await statusRes.json().catch(() => ({}));
+      return { state: 'close', error: err?.message || `Instância não encontrada (HTTP ${statusRes.status})` };
+    }
+    const data = await statusRes.json();
+    return { state: data?.instance?.state || 'close' };
+  } catch (err: any) {
+    return { state: 'disconnected', error: err.message };
+  }
+}
+
+/**
  * Envia uma mensagem de WhatsApp via instância do consultório
  */
 export async function sendWhatsAppMessage(
@@ -98,24 +118,44 @@ export async function sendWhatsAppMessage(
       cleanPhone = `55${cleanPhone}`;
     }
 
+    // Payload compatível tanto com v1.8.x quanto com v2.x
+    const payload = {
+      number: cleanPhone,
+      text: text,
+      textMessage: {
+        text: text,
+      },
+      delay: 1200,
+      linkPreview: true,
+    };
+
     const res = await fetch(`${EVOLUTION_URL}/message/sendText/${instanceName}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         apikey: EVOLUTION_KEY,
       },
-      body: JSON.stringify({
-        number: cleanPhone,
-        text,
-        delay: 1200, // delay humanizado
-        linkPreview: true,
-      }),
+      body: JSON.stringify(payload),
       cache: 'no-store',
     });
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      return { success: false, error: errData?.message || 'Falha ao enviar mensagem.' };
+      let errMsg = 'Falha ao enviar mensagem.';
+      if (errData?.response?.message) {
+        errMsg = Array.isArray(errData.response.message)
+          ? errData.response.message.join('; ')
+          : String(errData.response.message);
+      } else if (errData?.message) {
+        errMsg = Array.isArray(errData.message)
+          ? errData.message.join('; ')
+          : String(errData.message);
+      } else if (errData?.error) {
+        errMsg = String(errData.error);
+      } else {
+        errMsg = `Erro HTTP ${res.status}: ${res.statusText || 'Não foi possível enviar via Evolution API'}`;
+      }
+      return { success: false, error: errMsg };
     }
 
     return { success: true };

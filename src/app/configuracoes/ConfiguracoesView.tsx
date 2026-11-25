@@ -776,7 +776,7 @@ export function ConfiguracoesView({
                       <button
                         type="button"
                         onClick={handleSendTestMessage}
-                        disabled={isSendingTest || whatsappStatus !== 'open'}
+                        disabled={isSendingTest}
                         className="w-full py-2 px-3 rounded-lg bg-[#1F4D36] hover:bg-[#183C2A] text-white font-bold text-xs disabled:opacity-50 transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         {isSendingTest ? (
@@ -792,6 +792,12 @@ export function ConfiguracoesView({
                         )}
                       </button>
                     </div>
+
+                    {whatsappStatus !== 'open' && (
+                      <p className="text-[10px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                        ⚠️ O WhatsApp precisa estar conectado acima via QR Code antes de testar ou enviar lembretes.
+                      </p>
+                    )}
 
                     {testFeedback && (
                       <div

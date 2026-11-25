@@ -1,6 +1,7 @@
 import { getCurrentTenant } from '@/lib/current-tenant';
 import { prisma } from '@/lib/prisma';
 import { ConfiguracoesView } from './ConfiguracoesView';
+import { getLiveWhatsAppState } from '@/lib/whatsapp';
 
 export const metadata = {
   title: 'Configurações do Consultório — BEM',
@@ -11,6 +12,15 @@ export default async function ConfiguracoesPage() {
   const tenant = await getCurrentTenant();
 
   if (!tenant) return <div>Tenant não encontrado.</div>;
+
+  const instanceName = tenant.whatsappInstanceName || `bem_${tenant.slug.toLowerCase().replace(/[^a-z0-9_]/g, '')}`;
+  let liveWhatsappStatus = tenant.whatsappStatus || 'disconnected';
+  try {
+    const live = await getLiveWhatsAppState(instanceName);
+    liveWhatsappStatus = live.state;
+  } catch {
+    // mantem fallback
+  }
 
   const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/agendar?slug=${tenant.slug}`;
 
@@ -37,8 +47,8 @@ export default async function ConfiguracoesPage() {
         professionalReg: tenant.professionalReg,
         meetingUrlDefault: tenant.meetingUrlDefault,
         address: tenant.address,
-        whatsappInstanceName: tenant.whatsappInstanceName,
-        whatsappStatus: tenant.whatsappStatus,
+        whatsappInstanceName: instanceName,
+        whatsappStatus: liveWhatsappStatus,
         whatsappQrCode: tenant.whatsappQrCode,
         whatsappAutoReminder: tenant.whatsappAutoReminder,
         whatsappReminderHours: tenant.whatsappReminderHours,

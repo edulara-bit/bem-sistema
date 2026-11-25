@@ -3,7 +3,12 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentTenant } from '@/lib/current-tenant';
 import { revalidatePath } from 'next/cache';
-import { getOrCreateWhatsAppInstance, logoutWhatsAppInstance, sendWhatsAppMessage } from '@/lib/whatsapp';
+import { 
+  getOrCreateWhatsAppInstance, 
+  logoutWhatsAppInstance, 
+  sendWhatsAppMessage,
+  getLiveWhatsAppState 
+} from '@/lib/whatsapp';
 import { decryptText } from '@/lib/crypto';
 
 export async function connectWhatsAppAction() {
@@ -252,8 +257,15 @@ export async function sendTestWhatsAppMessageAction(targetPhone: string) {
   const tenant = await getCurrentTenant();
   if (!tenant) throw new Error('Tenant não encontrado.');
 
-  if (!tenant.whatsappInstanceName) {
-    throw new Error('Instância do WhatsApp não configurada.');
+  const instanceName = tenant.whatsappInstanceName || `bem_${tenant.slug.toLowerCase().replace(/[^a-z0-9_]/g, '')}`;
+
+  // 1. Verifica estado de conexão ao vivo na Evolution API
+  const live = await getLiveWhatsAppState(instanceName);
+  if (live.state !== 'open') {
+    return {
+      success: false,
+      error: `A instância do WhatsApp (${instanceName}) está no estado "${live.state}" na Evolution API (não conectada). Por favor, clique em "Conectar Celular" acima e leia o QR Code com seu WhatsApp.`,
+    };
   }
 
   const phone = targetPhone.trim() || tenant.whatsapp;
@@ -263,7 +275,7 @@ export async function sendTestWhatsAppMessageAction(targetPhone: string) {
 
   const testMsg = `🧪 *Teste de Conexão - BEM Terapeuta*\n\nOlá, ${tenant.name}! Sua integração com o WhatsApp está ativa e funcionando perfeitamente.\n\nOs lembretes automáticos de 24h e 2h antes serão enviados pontualmente aos seus pacientes.`;
 
-  const res = await sendWhatsAppMessage(tenant.whatsappInstanceName, phone, testMsg);
+  const res = await sendWhatsAppMessage(instanceName, phone, testMsg);
   return res;
 }
 
