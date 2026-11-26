@@ -186,9 +186,36 @@ export function ProntuarioView({
   const [currentComplement, setCurrentComplement] = useState<string>('');
   const [currentPairs, setCurrentPairs] = useState<EmocaoFrequenciaPar[]>([]);
   const [pendingEmotionToPick, setPendingEmotionToPick] = useState<string>('');
+  const [emotionComboQuery, setEmotionComboQuery] = useState<string>('');
+  const [emotionComboOpen, setEmotionComboOpen] = useState<boolean>(false);
+  const [emotionComboHighlight, setEmotionComboHighlight] = useState<number>(0);
   const [pendingFreqNumberToPick, setPendingFreqNumberToPick] = useState<string>(
     frequenciesCatalog[0]?.number || '1'
   );
+
+  const normalizeSearch = (val: string) =>
+    val
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+
+  const comboFilteredEmotions = (() => {
+    const q = normalizeSearch(emotionComboQuery);
+    if (!q) return emotionsCatalog;
+    const startsWith: EmotionItem[] = [];
+    const contains: EmotionItem[] = [];
+    for (const emo of emotionsCatalog) {
+      const normTitle = normalizeSearch(emo.title);
+      const normCode = emo.code ? normalizeSearch(emo.code) : '';
+      if (normTitle.startsWith(q) || (normCode && normCode.startsWith(q))) {
+        startsWith.push(emo);
+      } else if (normTitle.includes(q) || (normCode && normCode.includes(q))) {
+        contains.push(emo);
+      }
+    }
+    return [...startsWith, ...contains];
+  })();
 
   // Anamnese
   const [anamnesisAnswers, setAnamnesisAnswers] = useState<Record<string, string>>(
@@ -287,6 +314,8 @@ export function ProntuarioView({
     };
     setCurrentPairs([...currentPairs, nextPair]);
     setPendingEmotionToPick('');
+    setEmotionComboQuery('');
+    setEmotionComboOpen(false);
   };
 
   const handleUpdatePairFrequency = (pairIndex: number, freqNumber: string) => {
@@ -352,6 +381,8 @@ export function ProntuarioView({
     setCurrentComplement('');
     setCurrentPairs([]);
     setPendingEmotionToPick('');
+    setEmotionComboQuery('');
+    setEmotionComboOpen(false);
   };
 
   const handleUpdateSavedSituacaoPairFreq = (
@@ -555,9 +586,11 @@ export function ProntuarioView({
   };
 
   const filteredEmotions = emotionsCatalog.filter((item) => {
+    const q = normalizeSearch(emotionSearch);
     const matchesSearch =
-      item.title.toLowerCase().includes(emotionSearch.toLowerCase()) ||
-      (item.code && item.code.toLowerCase().includes(emotionSearch.toLowerCase()));
+      !q ||
+      normalizeSearch(item.title).includes(q) ||
+      Boolean(item.code && normalizeSearch(item.code).includes(q));
     const matchesFilter = emotionFilter === 'all' || item.type === emotionFilter;
     return matchesSearch && matchesFilter;
   });
@@ -1145,23 +1178,137 @@ export function ProntuarioView({
                 </label>
 
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
-                  <div className="sm:col-span-5">
+                  <div className="sm:col-span-5 relative">
                     <span className="block text-[10px] font-semibold text-[#6B726B] mb-1">
-                      Emoção Identificada
+                      Emoção Identificada (digite para filtrar)
                     </span>
-                    <select
-                      value={pendingEmotionToPick}
-                      onChange={(e) => setPendingEmotionToPick(e.target.value)}
-                      className="w-full p-2 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-xs text-[#222924]"
-                    >
-                      <option value="">Selecione a emoção...</option>
-                      {emotionsCatalog.map((emo) => (
-                        <option key={emo.id} value={emo.title}>
-                          {emo.code ? `[${emo.code}] ` : ''}
-                          {emo.title} ({emo.type})
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative flex items-center">
+                      <Search className="w-3.5 h-3.5 absolute left-3 text-gray-400 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={emotionComboQuery}
+                        onFocus={() => {
+                          setEmotionComboOpen(true);
+                          setEmotionComboHighlight(0);
+                        }}
+                        onBlur={() => {
+                          // Pequeno atraso para permitir clique nas opções da lista
+                          setTimeout(() => setEmotionComboOpen(false), 160);
+                        }}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEmotionComboQuery(val);
+                          setEmotionComboOpen(true);
+                          setEmotionComboHighlight(0);
+                          const exact = emotionsCatalog.find(
+                            (em) => normalizeSearch(em.title) === normalizeSearch(val)
+                          );
+                          setPendingEmotionToPick(exact ? exact.title : '');
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            setEmotionComboOpen(true);
+                            setEmotionComboHighlight((prev) =>
+                              Math.min(prev + 1, Math.max(0, comboFilteredEmotions.length - 1))
+                            );
+                          } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            setEmotionComboHighlight((prev) => Math.max(0, prev - 1));
+                          } else if (e.key === 'Enter') {
+                            if (emotionComboOpen && comboFilteredEmotions.length > 0) {
+                              e.preventDefault();
+                              const picked =
+                                comboFilteredEmotions[emotionComboHighlight] ||
+                                comboFilteredEmotions[0];
+                              if (picked) {
+                                setPendingEmotionToPick(picked.title);
+                                setEmotionComboQuery(picked.title);
+                                setEmotionComboOpen(false);
+                              }
+                            } else if (pendingEmotionToPick) {
+                              e.preventDefault();
+                              handleAddPairToCurrentSituation();
+                            }
+                          } else if (e.key === 'Escape') {
+                            setEmotionComboOpen(false);
+                          }
+                        }}
+                        placeholder="Digite a emoção (ex: Raiva, Abandono, A1)..."
+                        className={`w-full pl-8 pr-8 py-2 rounded-xl border text-xs text-[#222924] transition-all focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/25 ${
+                          pendingEmotionToPick
+                            ? 'border-[#1F4D36] bg-[#EBF3ED]/40 font-bold'
+                            : 'border-[#E8E5DF] bg-[#FBF9F5]'
+                        }`}
+                      />
+
+                      {emotionComboQuery && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmotionComboQuery('');
+                            setPendingEmotionToPick('');
+                            setEmotionComboOpen(true);
+                            setEmotionComboHighlight(0);
+                          }}
+                          title="Limpar busca"
+                          className="absolute right-2.5 text-gray-400 hover:text-gray-700"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {emotionComboOpen && (
+                      <div className="absolute left-0 right-0 top-full mt-1 z-40 max-h-60 overflow-y-auto rounded-xl border border-[#E8E5DF] bg-white shadow-xl divide-y divide-[#F3F1EC]">
+                        {comboFilteredEmotions.length === 0 ? (
+                          <div className="p-3 text-xs text-[#6B726B] text-center">
+                            Nenhuma emoção encontrada para &quot;{emotionComboQuery}&quot;.
+                          </div>
+                        ) : (
+                          comboFilteredEmotions.map((emo, idx) => {
+                            const isHighlighted = idx === emotionComboHighlight;
+                            const isNeg = emo.type === 'Negativa';
+                            return (
+                              <button
+                                key={emo.id}
+                                type="button"
+                                onMouseDown={(ev) => {
+                                  ev.preventDefault();
+                                  setPendingEmotionToPick(emo.title);
+                                  setEmotionComboQuery(emo.title);
+                                  setEmotionComboOpen(false);
+                                }}
+                                onMouseEnter={() => setEmotionComboHighlight(idx)}
+                                className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between gap-2 transition-colors ${
+                                  isHighlighted ? 'bg-[#EBF3ED]' : 'hover:bg-[#FBF9F5]'
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="font-bold text-[#222924] truncate">
+                                    {emo.title}
+                                  </span>
+                                  {emo.code && (
+                                    <span className="text-[10px] font-mono text-[#6B726B] shrink-0">
+                                      [{emo.code}]
+                                    </span>
+                                  )}
+                                </div>
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                                    isNeg
+                                      ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  }`}
+                                >
+                                  {emo.type}
+                                </span>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="sm:col-span-5">
