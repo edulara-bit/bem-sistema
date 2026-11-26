@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Settings, 
@@ -29,7 +29,6 @@ import {
   CalendarCheck
 } from 'lucide-react';
 import { 
-  updateTenantSettingsAction, 
   connectWhatsAppAction, 
   disconnectWhatsAppAction,
   createPackageAction,
@@ -112,6 +111,61 @@ export function ConfiguracoesView({
   const [qrCode, setQrCode] = useState<string | null>(tenant.whatsappQrCode || null);
   const [whatsappStatus, setWhatsappStatus] = useState<string>(tenant.whatsappStatus || 'disconnected');
   const [logoPreview, setLogoPreview] = useState<string>(tenant.logoUrl || '');
+  const [logoChanged, setLogoChanged] = useState(false);
+
+  const [form, setForm] = useState({
+    name: tenant.name || '',
+    professionalReg: tenant.professionalReg || '',
+    headline: tenant.headline || '',
+    bio: tenant.bio || '',
+    consultationPrice: String(tenant.consultationPrice ?? 220),
+    pixType: tenant.pixType || 'email',
+    pixKey: tenant.pixKey || '',
+    pixName: tenant.pixName || '',
+    whatsapp: tenant.whatsapp || '',
+    instagram: tenant.instagram || '',
+    meetingUrlDefault: tenant.meetingUrlDefault || '',
+    address: tenant.address || '',
+    whatsappReminderText:
+      tenant.whatsappReminderText ||
+      'Olá, {{paciente}}! Passando para confirmar nossa sessão de {{tipo}} amanhã, dia {{data}} às {{hora}}. Aguardo você!',
+    whatsappReminder2hText:
+      tenant.whatsappReminder2hText ||
+      'Olá, {{paciente}}! Nossa sessão começa em 2 horas (às {{hora}}). {{instrucoes_local}} Nos vemos em breve!',
+  });
+
+  // Estado para múltiplos lembretes
+  const [reminder24h, setReminder24h] = useState<boolean>(tenant.whatsappAutoReminder ?? true);
+  const [reminder2h, setReminder2h] = useState<boolean>(tenant.whatsappSend2hReminder ?? true);
+
+  useEffect(() => {
+    setForm({
+      name: tenant.name || '',
+      professionalReg: tenant.professionalReg || '',
+      headline: tenant.headline || '',
+      bio: tenant.bio || '',
+      consultationPrice: String(tenant.consultationPrice ?? 220),
+      pixType: tenant.pixType || 'email',
+      pixKey: tenant.pixKey || '',
+      pixName: tenant.pixName || '',
+      whatsapp: tenant.whatsapp || '',
+      instagram: tenant.instagram || '',
+      meetingUrlDefault: tenant.meetingUrlDefault || '',
+      address: tenant.address || '',
+      whatsappReminderText:
+        tenant.whatsappReminderText ||
+        'Olá, {{paciente}}! Passando para confirmar nossa sessão de {{tipo}} amanhã, dia {{data}} às {{hora}}. Aguardo você!',
+      whatsappReminder2hText:
+        tenant.whatsappReminder2hText ||
+        'Olá, {{paciente}}! Nossa sessão começa em 2 horas (às {{hora}}). {{instrucoes_local}} Nos vemos em breve!',
+    });
+    setReminder24h(tenant.whatsappAutoReminder ?? true);
+    setReminder2h(tenant.whatsappSend2hReminder ?? true);
+    setLogoPreview(tenant.logoUrl || '');
+    setLogoChanged(false);
+    setQrCode(tenant.whatsappQrCode || null);
+    setWhatsappStatus(tenant.whatsappStatus || 'disconnected');
+  }, [tenant.id]);
 
   const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -126,7 +180,7 @@ export function ConfiguracoesView({
       const dataUrl = String(reader.result || '');
       const img = new window.Image();
       img.onload = () => {
-        const maxDim = 420;
+        const maxDim = 360;
         let w = img.width;
         let h = img.height;
         if (w > maxDim || h > maxDim) {
@@ -145,21 +199,22 @@ export function ConfiguracoesView({
         if (ctx) {
           ctx.clearRect(0, 0, w, h);
           ctx.drawImage(img, 0, 0, w, h);
-          // Preserva transparência em PNG
-          setLogoPreview(canvas.toDataURL('image/png', 0.9));
+          const webp = canvas.toDataURL('image/webp', 0.86);
+          setLogoPreview(webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/png', 0.85));
+          setLogoChanged(true);
         } else {
           setLogoPreview(dataUrl);
+          setLogoChanged(true);
         }
       };
-      img.onerror = () => setLogoPreview(dataUrl);
+      img.onerror = () => {
+        setLogoPreview(dataUrl);
+        setLogoChanged(true);
+      };
       img.src = dataUrl;
     };
     reader.readAsDataURL(file);
   };
-
-  // Estado para múltiplos lembretes
-  const [reminder24h, setReminder24h] = useState<boolean>(tenant.whatsappAutoReminder ?? true);
-  const [reminder2h, setReminder2h] = useState<boolean>(tenant.whatsappSend2hReminder ?? true);
 
   // Estados para testes e disparos manuais do WhatsApp
   const [isTriggeringReminders, setIsTriggeringReminders] = useState(false);
@@ -244,13 +299,43 @@ export function ConfiguracoesView({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSaving(true);
-    const formData = new FormData(e.currentTarget);
     try {
-      await updateTenantSettingsAction(formData);
+      const payload: Record<string, any> = {
+        tenantSlug: tenant.slug,
+        ...form,
+        consultationPrice: parseFloat(form.consultationPrice || '220'),
+        whatsappAutoReminder: reminder24h,
+        whatsappSend2hReminder: reminder2h,
+        logoChanged,
+      };
+      if (logoChanged) {
+        payload.logoUrl = logoPreview;
+      }
+
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      const data = contentType.includes('application/json') ? await res.json() : null;
+
+      if (!res.ok || !data?.ok) {
+        throw new Error(
+          data?.error ||
+            (res.status === 413
+              ? 'A imagem da logomarca excedeu o tamanho limite do servidor. Escolha uma imagem menor.'
+              : `Falha ao salvar (HTTP ${res.status}).`)
+        );
+      }
+
+      setLogoChanged(false);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 4000);
+      router.refresh();
     } catch (err: any) {
-      alert('Erro ao salvar configurações: ' + err.message);
+      alert('Erro ao salvar configurações: ' + (err?.message || 'Erro inesperado.'));
     } finally {
       setIsSaving(false);
     }
@@ -392,9 +477,6 @@ export function ConfiguracoesView({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <input type="hidden" name="tenantSlug" value={tenant.slug} />
-        <input type="hidden" name="logoUrl" value={logoPreview} />
-
         {/* ABA 1: Identidade Profissional */}
         {activeTab === 'geral' && (
           <div className="bg-white p-6 rounded-2xl border border-[#E8E5DF] shadow-sm space-y-4 animate-fade-in">
@@ -417,7 +499,7 @@ export function ConfiguracoesView({
                   />
                 ) : (
                   <div className="w-16 h-16 rounded-2xl bg-[#1F4D36] text-white font-bold text-2xl flex items-center justify-center shadow-xs shrink-0">
-                    {tenant.name.charAt(0)}
+                    {(form.name || tenant.name).charAt(0)}
                   </div>
                 )}
                 <div className="space-y-1">
@@ -443,7 +525,10 @@ export function ConfiguracoesView({
                 {logoPreview && (
                   <button
                     type="button"
-                    onClick={() => setLogoPreview('')}
+                    onClick={() => {
+                      setLogoPreview('');
+                      setLogoChanged(true);
+                    }}
                     className="px-3 py-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold"
                   >
                     Remover
@@ -461,7 +546,8 @@ export function ConfiguracoesView({
                   type="text"
                   name="name"
                   required
-                  defaultValue={tenant.name}
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30 text-sm"
                 />
               </div>
@@ -473,7 +559,8 @@ export function ConfiguracoesView({
                 <input
                   type="text"
                   name="professionalReg"
-                  defaultValue={tenant.professionalReg || ''}
+                  value={form.professionalReg}
+                  onChange={(e) => setForm({ ...form, professionalReg: e.target.value })}
                   placeholder="Ex: CRP 06/123456 ou CRTH-BR 1234"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30 text-sm"
                 />
@@ -487,7 +574,8 @@ export function ConfiguracoesView({
               <input
                 type="text"
                 name="headline"
-                defaultValue={tenant.headline || ''}
+                value={form.headline}
+                onChange={(e) => setForm({ ...form, headline: e.target.value })}
                 placeholder="Ex: Psicoterapia Integrativa & Acolhimento Humanizado"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30 text-sm"
               />
@@ -500,7 +588,8 @@ export function ConfiguracoesView({
               <textarea
                 name="bio"
                 rows={3}
-                defaultValue={tenant.bio || ''}
+                value={form.bio}
+                onChange={(e) => setForm({ ...form, bio: e.target.value })}
                 placeholder="Apresente sua abordagem e como você acolhe os pacientes..."
                 className="w-full p-3.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30 text-sm resize-none font-sans"
               ></textarea>
@@ -528,7 +617,8 @@ export function ConfiguracoesView({
                   type="number"
                   step="0.01"
                   name="consultationPrice"
-                  defaultValue={tenant.consultationPrice}
+                  value={form.consultationPrice}
+                  onChange={(e) => setForm({ ...form, consultationPrice: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30 text-sm"
                 />
                 <p className="text-[10px] text-[#6B726B] mt-1">Sessões avulsas de manutenção</p>
@@ -540,7 +630,8 @@ export function ConfiguracoesView({
                 </label>
                 <select
                   name="pixType"
-                  defaultValue={tenant.pixType || 'email'}
+                  value={form.pixType}
+                  onChange={(e) => setForm({ ...form, pixType: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30 text-sm"
                 >
                   <option value="email">E-mail</option>
@@ -558,7 +649,8 @@ export function ConfiguracoesView({
                 <input
                   type="text"
                   name="pixKey"
-                  defaultValue={tenant.pixKey || ''}
+                  value={form.pixKey}
+                  onChange={(e) => setForm({ ...form, pixKey: e.target.value })}
                   placeholder="Ex: terapeuta@edulara.com.br"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30 text-sm"
                 />
@@ -572,7 +664,8 @@ export function ConfiguracoesView({
               <input
                 type="text"
                 name="pixName"
-                defaultValue={tenant.pixName || ''}
+                value={form.pixName}
+                onChange={(e) => setForm({ ...form, pixName: e.target.value })}
                 placeholder="Ex: Eduardo Lara"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30 text-sm"
               />
@@ -602,7 +695,8 @@ export function ConfiguracoesView({
                 <input
                   type="tel"
                   name="whatsapp"
-                  defaultValue={tenant.whatsapp || ''}
+                  value={form.whatsapp}
+                  onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
                   placeholder="(11) 99999-9999"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30 text-sm"
                 />
@@ -615,7 +709,8 @@ export function ConfiguracoesView({
                 <input
                   type="text"
                   name="instagram"
-                  defaultValue={tenant.instagram || ''}
+                  value={form.instagram}
+                  onChange={(e) => setForm({ ...form, instagram: e.target.value })}
                   placeholder="@edulara.terapeuta"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30 text-sm"
                 />
@@ -629,7 +724,8 @@ export function ConfiguracoesView({
               <input
                 type="url"
                 name="meetingUrlDefault"
-                defaultValue={tenant.meetingUrlDefault || ''}
+                value={form.meetingUrlDefault}
+                onChange={(e) => setForm({ ...form, meetingUrlDefault: e.target.value })}
                 placeholder="https://meet.google.com/sua-sala-fixa"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30 text-sm"
               />
@@ -643,7 +739,8 @@ export function ConfiguracoesView({
               <input
                 type="text"
                 name="address"
-                defaultValue={tenant.address || ''}
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
                 placeholder="Ex: R. Irineu Forandi, 51 - Vila Monteiro, Piracicaba - SP, 13418-425"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30 text-sm"
               />
@@ -766,10 +863,8 @@ export function ConfiguracoesView({
                     <textarea
                       name="whatsappReminderText"
                       rows={2}
-                      defaultValue={
-                        tenant.whatsappReminderText ||
-                        'Olá, {{paciente}}! Passando para confirmar nossa sessão de {{tipo}} amanhã, dia {{data}} às {{hora}}. Aguardo você!'
-                      }
+                      value={form.whatsappReminderText}
+                      onChange={(e) => setForm({ ...form, whatsappReminderText: e.target.value })}
                       className="w-full p-2.5 rounded-xl border border-[#E8E5DF] bg-white text-xs text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30 resize-none font-sans"
                     />
                     <p className="text-[10px] text-[#6B726B]">Variáveis disponíveis: {'{{paciente}}, {{data}}, {{hora}}, {{tipo}}'}</p>
@@ -797,10 +892,8 @@ export function ConfiguracoesView({
                     <textarea
                       name="whatsappReminder2hText"
                       rows={2}
-                      defaultValue={
-                        tenant.whatsappReminder2hText ||
-                        'Olá, {{paciente}}! Nossa sessão começa em 2 horas (às {{hora}}). {{instrucoes_local}} Nos vemos em breve!'
-                      }
+                      value={form.whatsappReminder2hText}
+                      onChange={(e) => setForm({ ...form, whatsappReminder2hText: e.target.value })}
                       className="w-full p-2.5 rounded-xl border border-[#E8E5DF] bg-white text-xs text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/30 resize-none font-sans"
                     />
                     <p className="text-[10px] text-[#6B726B]">

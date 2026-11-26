@@ -55,48 +55,48 @@ export async function updateTenantSettingsAction(formData: FormData) {
   const tenant = await prisma.tenant.findUnique({ where: { slug } });
   if (!tenant) throw new Error('Tenant não encontrado.');
 
-  const name = formData.get('name') as string;
-  const logoUrlRaw = (formData.get('logoUrl') as string) || '';
-  const logoUrl = logoUrlRaw.trim() ? logoUrlRaw.trim() : null;
-  const headline = (formData.get('headline') as string) || '';
-  const bio = (formData.get('bio') as string) || '';
-  const professionalReg = (formData.get('professionalReg') as string) || '';
-  const consultationPrice = parseFloat((formData.get('consultationPrice') as string) || '220');
-  const pixKey = (formData.get('pixKey') as string) || '';
-  const pixType = (formData.get('pixType') as string) || 'email';
-  const pixName = (formData.get('pixName') as string) || '';
-  const meetingUrlDefault = (formData.get('meetingUrlDefault') as string) || '';
-  const address = (formData.get('address') as string) || '';
-  const whatsapp = (formData.get('whatsapp') as string) || '';
-  const instagram = (formData.get('instagram') as string) || '';
-  const whatsappAutoReminder = formData.get('whatsappAutoReminder') === 'on';
-  const whatsappReminderHours = parseInt((formData.get('whatsappReminderHours') as string) || '24', 10);
-  const whatsappReminderText = (formData.get('whatsappReminderText') as string) || '';
-  const whatsappSend2hReminder = formData.get('whatsappSend2hReminder') === 'on';
-  const whatsappReminder2hText = (formData.get('whatsappReminder2hText') as string) || '';
+  const updateData: Record<string, any> = {};
+
+  if (formData.has('name')) {
+    const rawName = String(formData.get('name') || '').trim();
+    updateData.name = rawName || tenant.name;
+  }
+  if (formData.has('logoUrl')) {
+    const logoUrlRaw = String(formData.get('logoUrl') || '').trim();
+    updateData.logoUrl = logoUrlRaw ? logoUrlRaw : null;
+  }
+  if (formData.has('headline')) updateData.headline = String(formData.get('headline') || '');
+  if (formData.has('bio')) updateData.bio = String(formData.get('bio') || '');
+  if (formData.has('professionalReg')) updateData.professionalReg = String(formData.get('professionalReg') || '');
+  if (formData.has('consultationPrice')) {
+    const parsed = parseFloat(String(formData.get('consultationPrice') || tenant.consultationPrice));
+    if (!Number.isNaN(parsed)) updateData.consultationPrice = parsed;
+  }
+  if (formData.has('pixKey')) updateData.pixKey = String(formData.get('pixKey') || '');
+  if (formData.has('pixType')) updateData.pixType = String(formData.get('pixType') || 'email');
+  if (formData.has('pixName')) updateData.pixName = String(formData.get('pixName') || '');
+  if (formData.has('meetingUrlDefault')) updateData.meetingUrlDefault = String(formData.get('meetingUrlDefault') || '');
+  if (formData.has('address')) updateData.address = String(formData.get('address') || '');
+  if (formData.has('whatsapp')) updateData.whatsapp = String(formData.get('whatsapp') || '');
+  if (formData.has('instagram')) updateData.instagram = String(formData.get('instagram') || '');
+
+  if (formData.has('whatsappReminderText') || formData.has('whatsappReminder2hText') || formData.has('whatsappAutoReminder') || formData.has('whatsappSend2hReminder')) {
+    updateData.whatsappAutoReminder = formData.get('whatsappAutoReminder') === 'on';
+    updateData.whatsappSend2hReminder = formData.get('whatsappSend2hReminder') === 'on';
+    if (formData.has('whatsappReminderHours')) {
+      updateData.whatsappReminderHours = parseInt(String(formData.get('whatsappReminderHours') || '24'), 10);
+    }
+    if (formData.has('whatsappReminderText')) {
+      updateData.whatsappReminderText = String(formData.get('whatsappReminderText') || '');
+    }
+    if (formData.has('whatsappReminder2hText')) {
+      updateData.whatsappReminder2hText = String(formData.get('whatsappReminder2hText') || '');
+    }
+  }
 
   await prisma.tenant.update({
     where: { id: tenant.id },
-    data: {
-      name,
-      logoUrl,
-      headline,
-      bio,
-      professionalReg,
-      consultationPrice,
-      pixKey,
-      pixType,
-      pixName,
-      meetingUrlDefault,
-      address,
-      whatsapp,
-      instagram,
-      whatsappAutoReminder,
-      whatsappReminderHours,
-      whatsappSend2hReminder,
-      whatsappReminderText,
-      whatsappReminder2hText,
-    },
+    data: updateData,
   });
 
   revalidatePath('/', 'layout');
