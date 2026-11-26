@@ -37,6 +37,7 @@ import {
   saveCorePhilosophyAndAutomationAction,
   addKnowledgeSourceAction,
   toggleKnowledgePinAction,
+  updateKnowledgeScopeAction,
   deleteKnowledgeSourceAction,
   addStructuredMemoryAction,
   toggleMemoryPinAction,
@@ -100,6 +101,46 @@ interface ProgramItem {
   deliveryMode: string;
   status: string;
   steps: any[];
+}
+
+const ALL_AGENT_SCOPE_OPTIONS: Array<{ slug: AgentSlug; label: string }> = [
+  { slug: 'pos_sessao', label: 'Pós-Sessão / Atendimento' },
+  { slug: 'expansao', label: 'Expansão da Consciência' },
+  { slug: 'marketing', label: 'Conteúdo & Captação' },
+  { slug: 'gestao', label: 'Gestão do Consultório' },
+];
+
+function parseScopeList(domainScope: string): AgentSlug[] {
+  if (!domainScope || domainScope === 'all') {
+    return ALL_AGENT_SCOPE_OPTIONS.map((o) => o.slug);
+  }
+  const valid = new Set(ALL_AGENT_SCOPE_OPTIONS.map((o) => o.slug));
+  const parsed = domainScope
+    .split(',')
+    .map((s) => s.trim() as AgentSlug)
+    .filter((s) => valid.has(s));
+  return parsed.length > 0 ? parsed : ALL_AGENT_SCOPE_OPTIONS.map((o) => o.slug);
+}
+
+function serializeScopeList(selected: AgentSlug[]): string {
+  if (selected.length === 0 || selected.length >= ALL_AGENT_SCOPE_OPTIONS.length) {
+    return 'all';
+  }
+  return selected.join(',');
+}
+
+function formatScopeLabel(domainScope: string): string {
+  if (!domainScope || domainScope === 'all') return 'Todos os Agentes';
+  const map: Record<string, string> = {
+    pos_sessao: 'Pós-Sessão',
+    expansao: 'Expansão',
+    marketing: 'Conteúdo/Captação',
+    gestao: 'Gestão',
+  };
+  return domainScope
+    .split(',')
+    .map((s) => map[s.trim()] || s.trim())
+    .join(' • ');
 }
 
 const QUICK_PROMPTS_BY_AGENT: Record<AgentSlug, string[]> = {
@@ -199,7 +240,14 @@ export function CopilotoView({
     'seminar_note' | 'pdf' | 'bibliography' | 'text' | 'url' | 'directive'
   >('seminar_note');
   const [kTitle, setKTitle] = useState('');
-  const [kScope, setKScope] = useState('all');
+  const [kSelectedAgents, setKSelectedAgents] = useState<AgentSlug[]>([
+    'pos_sessao',
+    'expansao',
+    'marketing',
+    'gestao',
+  ]);
+  const [editingScopeSourceId, setEditingScopeSourceId] = useState<string | null>(null);
+  const [editingScopeSelection, setEditingScopeSelection] = useState<AgentSlug[]>([]);
   const [kAuthor, setKAuthor] = useState('');
   const [kUrl, setKUrl] = useState('');
   const [kTags, setKTags] = useState('');
@@ -374,7 +422,7 @@ export function CopilotoView({
             uploadId,
             fileName: selectedFile.name,
             title: kTitle,
-            domainScope: kScope,
+            domainScope: serializeScopeList(kSelectedAgents),
             authorOrRef: kAuthor,
             tags: kTags,
             isPinned: kPinned,
@@ -395,7 +443,7 @@ export function CopilotoView({
             action: 'direct',
             title: kTitle,
             sourceType: kType,
-            domainScope: kScope,
+            domainScope: serializeScopeList(kSelectedAgents),
             authorOrRef: kAuthor,
             sourceUrl: kUrl,
             rawContent: kContent,
@@ -500,9 +548,12 @@ export function CopilotoView({
     return true;
   });
 
-  const filteredKnowledge = knowledgeSources.filter((k) =>
-    kFilterScope === 'all_filter' ? true : k.domainScope === kFilterScope
-  );
+  const filteredKnowledge = knowledgeSources.filter((k) => {
+    if (kFilterScope === 'all_filter') return true;
+    if (kFilterScope === 'all') return k.domainScope === 'all';
+    const list = parseScopeList(k.domainScope);
+    return k.domainScope === 'all' || list.includes(kFilterScope as AgentSlug);
+  });
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
@@ -1076,34 +1127,73 @@ export function CopilotoView({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label className="block text-[11px] font-bold text-[#222924] mb-1">
-                    Autor / Livro / Seminário
+              <div>
+                <label className="block text-[11px] font-bold text-[#222924] mb-1">
+                  Autor / Livro / Seminário
+                </label>
+                <input
+                  type="text"
+                  value={kAuthor}
+                  onChange={(e) => setKAuthor(e.target.value)}
+                  placeholder="Ex: Seminário Piracicaba 2025 / M.T. Morter Jr."
+                  className="w-full px-3 py-2 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-xs"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-[11px] font-bold text-[#222924]">
+                    Quais Agentes usam? (Múltipla Escolha)
                   </label>
-                  <input
-                    type="text"
-                    value={kAuthor}
-                    onChange={(e) => setKAuthor(e.target.value)}
-                    placeholder="Ex: Seminário Piracicaba 2025 / Lowen"
-                    className="w-full px-3 py-2 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-[#222924] mb-1">
-                    Quais Agentes usam?
-                  </label>
-                  <select
-                    value={kScope}
-                    onChange={(e) => setKScope(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-xs"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (kSelectedAgents.length === ALL_AGENT_SCOPE_OPTIONS.length) {
+                        setKSelectedAgents(['pos_sessao']);
+                      } else {
+                        setKSelectedAgents(ALL_AGENT_SCOPE_OPTIONS.map((o) => o.slug));
+                      }
+                    }}
+                    className="text-[11px] font-semibold text-[#1F4D36] hover:underline"
                   >
-                    <option value="all">Todos os Agentes B.E.M.</option>
-                    <option value="pos_sessao">Pós-Sessão / Atendimento</option>
-                    <option value="expansao">Expansão da Consciência</option>
-                    <option value="marketing">Conteúdo & Captação</option>
-                    <option value="gestao">Gestão do Consultório</option>
-                  </select>
+                    {kSelectedAgents.length === ALL_AGENT_SCOPE_OPTIONS.length
+                      ? 'Selecionar individualmente'
+                      : 'Marcar todos os agentes'}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-2.5 rounded-xl bg-[#FBF9F5] border border-[#E8E5DF]">
+                  {ALL_AGENT_SCOPE_OPTIONS.map((opt) => {
+                    const checked = kSelectedAgents.includes(opt.slug);
+                    return (
+                      <label
+                        key={opt.slug}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs cursor-pointer transition-all ${
+                          checked
+                            ? 'bg-[#EBF3ED] border-[#1F4D36]/40 text-[#1F4D36] font-semibold'
+                            : 'bg-white border-[#E8E5DF] text-[#6B726B] hover:text-[#222924]'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            if (checked) {
+                              if (kSelectedAgents.length > 1) {
+                                setKSelectedAgents(
+                                  kSelectedAgents.filter((s) => s !== opt.slug)
+                                );
+                              }
+                            } else {
+                              setKSelectedAgents([...kSelectedAgents, opt.slug]);
+                            }
+                          }}
+                          className="w-3.5 h-3.5 accent-[#1F4D36]"
+                        />
+                        <span className="truncate">{opt.label}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1233,9 +1323,21 @@ export function CopilotoView({
                           <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[#EBF3ED] text-[#1F4D36]">
                             {k.sourceType}
                           </span>
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-                            Escopo: {k.domainScope}
-                          </span>
+                          <button
+                            type="button"
+                            title="Clique para escolher quais agentes usam este material"
+                            onClick={() => {
+                              if (editingScopeSourceId === k.id) {
+                                setEditingScopeSourceId(null);
+                              } else {
+                                setEditingScopeSourceId(k.id);
+                                setEditingScopeSelection(parseScopeList(k.domainScope));
+                              }
+                            }}
+                            className="text-[10px] font-semibold px-2 py-0.5 rounded bg-gray-100 hover:bg-[#EBF3ED] text-gray-700 hover:text-[#1F4D36] transition-all cursor-pointer"
+                          >
+                            Agentes: {formatScopeLabel(k.domainScope)} ✎
+                          </button>
                           <span className="text-[10px] text-[#6B726B]">
                             {k.chunkCount} bloco(s) • {k.updatedAt}
                           </span>
@@ -1274,6 +1376,81 @@ export function CopilotoView({
                         </button>
                       </div>
                     </div>
+
+                    {editingScopeSourceId === k.id && (
+                      <div className="p-3 rounded-xl bg-[#FBF9F5] border border-[#1F4D36]/30 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-[#1F4D36]">
+                            Quais agentes usam "{k.title}"?
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditingScopeSelection(
+                                ALL_AGENT_SCOPE_OPTIONS.map((o) => o.slug)
+                              )
+                            }
+                            className="text-[10px] font-semibold text-[#1F4D36] hover:underline"
+                          >
+                            Marcar todos
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {ALL_AGENT_SCOPE_OPTIONS.map((opt) => {
+                            const active = editingScopeSelection.includes(opt.slug);
+                            return (
+                              <button
+                                key={opt.slug}
+                                type="button"
+                                onClick={() => {
+                                  if (active && editingScopeSelection.length > 1) {
+                                    setEditingScopeSelection(
+                                      editingScopeSelection.filter((s) => s !== opt.slug)
+                                    );
+                                  } else if (!active) {
+                                    setEditingScopeSelection([
+                                      ...editingScopeSelection,
+                                      opt.slug,
+                                    ]);
+                                  }
+                                }}
+                                className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold ${
+                                  active
+                                    ? 'bg-[#1F4D36] text-white border-[#1F4D36]'
+                                    : 'bg-white text-[#6B726B] border-[#E8E5DF]'
+                                }`}
+                              >
+                                {active ? '✓ ' : '+ '}
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div className="flex justify-end gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setEditingScopeSourceId(null)}
+                            className="px-2.5 py-1 rounded-lg border border-[#E8E5DF] bg-white text-[11px] text-[#6B726B]"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await updateKnowledgeScopeAction(
+                                k.id,
+                                serializeScopeList(editingScopeSelection)
+                              );
+                              setEditingScopeSourceId(null);
+                              router.refresh();
+                            }}
+                            className="px-3 py-1 rounded-lg bg-[#1F4D36] text-white text-[11px] font-bold"
+                          >
+                            Salvar Agentes
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     <p className="text-xs text-[#6B726B] bg-[#FBF9F5] p-2.5 rounded-xl border border-[#E8E5DF]">
                       {k.excerpt}...

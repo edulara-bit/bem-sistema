@@ -327,6 +327,18 @@ function lexicalScore(query: string, candidate: string): number {
   return hits / tokens.length;
 }
 
+export function scopeMatchesAgent(
+  domainScope: string | null | undefined,
+  agentSlug: string
+): boolean {
+  if (!domainScope || domainScope.trim() === '' || domainScope === 'all') return true;
+  const parts = domainScope
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return parts.includes('all') || parts.includes(agentSlug);
+}
+
 /**
  * Busca Híbrida (Semântica Vetorial + Lexical + Diretrizes Fixadas + Catálogo Nativo de Emoções B.E.M.)
  */
@@ -339,33 +351,45 @@ export async function retrieveBemKnowledge(params: {
 }) {
   const topK = params.topK || 6;
 
-  // 1. Diretrizes fixadas (isPinned) deste escopo ou globais
-  const pinnedSources = await prisma.knowledgeSource.findMany({
+  // 1. Diretrizes fixadas (isPinned) deste escopo (suporta múltiplos agentes separados por vírgula) ou globais
+  const rawPinned = await prisma.knowledgeSource.findMany({
     where: {
       tenantId: params.tenantId,
       isPinned: true,
-      domainScope: { in: ['all', params.agentSlug] },
+      OR: [{ domainScope: 'all' }, { domainScope: { contains: params.agentSlug } }],
     },
     orderBy: { updatedAt: 'desc' },
-    take: 6,
+    take: 12,
   });
+  const pinnedSources = rawPinned
+    .filter((p) => scopeMatchesAgent(p.domainScope, params.agentSlug))
+    .slice(0, 6);
 
   // 2. Chunks de fontes aplicáveis ao agente
-  const candidateChunks = await prisma.knowledgeChunk.findMany({
+  const rawChunks = await prisma.knowledgeChunk.findMany({
     where: {
       tenantId: params.tenantId,
       source: {
         isPinned: false,
-        domainScope: { in: ['all', params.agentSlug] },
+        OR: [{ domainScope: 'all' }, { domainScope: { contains: params.agentSlug } }],
       },
     },
     include: {
       source: {
-        select: { title: true, authorOrRef: true, sourceType: true, tags: true },
+        select: {
+          title: true,
+          authorOrRef: true,
+          sourceType: true,
+          tags: true,
+          domainScope: true,
+        },
       },
     },
-    take: 250,
+    take: 300,
   });
+  const candidateChunks = rawChunks.filter((c) =>
+    scopeMatchesAgent(c.source.domainScope, params.agentSlug)
+  );
 
   const queryVec = candidateChunks.length > 0 ? await embedSingleText(params.query) : null;
 

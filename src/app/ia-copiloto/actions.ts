@@ -180,6 +180,16 @@ export async function toggleKnowledgePinAction(id: string, isPinned: boolean) {
   return { success: true };
 }
 
+export async function updateKnowledgeScopeAction(id: string, domainScope: string) {
+  const tenant = await requireAiEnabledTenant();
+  await prisma.knowledgeSource.updateMany({
+    where: { id, tenantId: tenant.id },
+    data: { domainScope: domainScope.trim() || 'all' },
+  });
+  revalidatePath('/ia-copiloto');
+  return { success: true };
+}
+
 export async function deleteKnowledgeSourceAction(id: string) {
   const tenant = await requireAiEnabledTenant();
   await prisma.knowledgeSource.deleteMany({
