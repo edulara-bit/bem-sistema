@@ -129,6 +129,48 @@ export async function ensureAiTables(tenantId?: string) {
             `UPDATE "User" SET "role" = 'super_admin' WHERE "tenantId" IN (SELECT "id" FROM "Tenant" WHERE "slug" = 'edulara')`
           );
 
+          // Coluna anamnesisEnc na tabela Patient
+          const patCols = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
+            `PRAGMA table_info("Patient")`
+          );
+          if (!patCols.some((c) => c.name === 'anamnesisEnc')) {
+            await prisma.$executeRawUnsafe(`ALTER TABLE "Patient" ADD COLUMN "anamnesisEnc" TEXT`);
+          }
+
+          // Tabela global de Frequências Vibracionais B.E.M.
+          await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "Frequency" (
+              "id" TEXT NOT NULL PRIMARY KEY,
+              "number" TEXT NOT NULL,
+              "title" TEXT NOT NULL,
+              "description" TEXT NOT NULL,
+              "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+          await prisma.$executeRawUnsafe(
+            `CREATE INDEX IF NOT EXISTS "Frequency_number_idx" ON "Frequency"("number")`
+          );
+
+          // Tabela de Perguntas de Anamnese configuráveis por consultório
+          await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "AnamnesisQuestion" (
+              "id" TEXT NOT NULL PRIMARY KEY,
+              "tenantId" TEXT NOT NULL,
+              "question" TEXT NOT NULL,
+              "hint" TEXT,
+              "fieldType" TEXT NOT NULL DEFAULT 'textarea',
+              "sortOrder" INTEGER NOT NULL DEFAULT 0,
+              "active" BOOLEAN NOT NULL DEFAULT 1,
+              "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              CONSTRAINT "AnamnesisQuestion_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+            )
+          `);
+          await prisma.$executeRawUnsafe(
+            `CREATE INDEX IF NOT EXISTS "AnamnesisQuestion_tenantId_sortOrder_idx" ON "AnamnesisQuestion"("tenantId", "sortOrder")`
+          );
+
           await prisma.$executeRawUnsafe(`
             CREATE TABLE IF NOT EXISTS "AiAgentConfig" (
               "id" TEXT NOT NULL PRIMARY KEY,

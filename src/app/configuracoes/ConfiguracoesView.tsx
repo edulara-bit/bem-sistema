@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Settings, 
   User, 
@@ -34,7 +35,11 @@ import {
   createPackageAction,
   deletePackageAction,
   triggerManualRemindersAction,
-  sendTestWhatsAppMessageAction
+  sendTestWhatsAppMessageAction,
+  createAnamnesisQuestionAction,
+  updateAnamnesisQuestionAction,
+  deleteAnamnesisQuestionAction,
+  seedStarterAnamnesisQuestionsAction
 } from './actions';
 
 interface TenantData {
@@ -74,16 +79,32 @@ interface PackageItem {
   active: boolean;
 }
 
+interface AnamnesisQuestionItem {
+  id: string;
+  question: string;
+  hint?: string | null;
+  fieldType: string;
+  sortOrder: number;
+}
+
 export function ConfiguracoesView({
   tenant,
   packages = [],
+  anamnesisQuestions = [],
   publicUrl,
 }: {
   tenant: TenantData;
   packages?: PackageItem[];
+  anamnesisQuestions?: AnamnesisQuestionItem[];
   publicUrl: string;
 }) {
-  const [activeTab, setActiveTab] = useState<'geral' | 'financeiro' | 'canais' | 'whatsapp' | 'pacotes'>('geral');
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'geral' | 'financeiro' | 'canais' | 'whatsapp' | 'pacotes' | 'anamnese'>('geral');
+  const [newQuestionText, setNewQuestionText] = useState('');
+  const [newQuestionHint, setNewQuestionHint] = useState('');
+  const [newQuestionType, setNewQuestionType] = useState('textarea');
+  const [editingQuestion, setEditingQuestion] = useState<AnamnesisQuestionItem | null>(null);
+  const [isSavingQuestion, setIsSavingQuestion] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -354,6 +375,19 @@ export function ConfiguracoesView({
         >
           <PackageIcon className="w-4 h-4" />
           Pacotes de Sessões ({packages.length})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('anamnese')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+            activeTab === 'anamnese'
+              ? 'bg-[#1F4D36] text-white shadow-sm'
+              : 'text-[#6B726B] hover:text-[#222924] hover:bg-white'
+          }`}
+        >
+          <FileCheck className="w-4 h-4" />
+          Anamnese ({anamnesisQuestions.length})
         </button>
       </div>
 
@@ -1000,8 +1034,220 @@ export function ConfiguracoesView({
           </div>
         )}
 
+        {/* ABA 6: Perguntas de Anamnese */}
+        {activeTab === 'anamnese' && (
+          <div className="bg-white p-6 rounded-2xl border border-[#E8E5DF] shadow-sm space-y-5 animate-fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8E5DF] pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-[#222924] flex items-center gap-2">
+                  <FileCheck className="w-4 h-4 text-[#1F4D36]" />
+                  Perguntas da Ficha de Anamnese
+                </h2>
+                <p className="text-[11px] text-[#6B726B]">
+                  Configure as perguntas que aparecerão no Prontuário de cada paciente para serem respondidas e consultadas.
+                </p>
+              </div>
+
+              {anamnesisQuestions.length === 0 && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsSavingQuestion(true);
+                    await seedStarterAnamnesisQuestionsAction();
+                    setIsSavingQuestion(false);
+                    router.refresh();
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-[#EBF3ED] text-[#1F4D36] text-xs font-bold hover:bg-[#dceade] flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Importar Perguntas Sugeridas B.E.M.
+                </button>
+              )}
+            </div>
+
+            {/* Formulário de Nova Pergunta ou Edição */}
+            <div className="p-4 rounded-2xl bg-[#FBF9F5] border border-[#E8E5DF] space-y-3">
+              <span className="text-xs font-bold text-[#222924] block">
+                {editingQuestion ? 'Editar Pergunta de Anamnese' : 'Adicionar Nova Pergunta'}
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div className="sm:col-span-3">
+                  <label className="block text-[11px] font-semibold text-[#222924] mb-1">
+                    Pergunta *
+                  </label>
+                  <input
+                    type="text"
+                    value={editingQuestion ? editingQuestion.question : newQuestionText}
+                    onChange={(e) =>
+                      editingQuestion
+                        ? setEditingQuestion({ ...editingQuestion, question: e.target.value })
+                        : setNewQuestionText(e.target.value)
+                    }
+                    placeholder="Ex: Qual o principal motivo que o trouxe para esta sessão hoje?"
+                    className="w-full px-3 py-2 rounded-xl border border-[#E8E5DF] bg-white text-xs text-[#222924]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#222924] mb-1">
+                    Formato de Resposta
+                  </label>
+                  <select
+                    value={editingQuestion ? editingQuestion.fieldType : newQuestionType}
+                    onChange={(e) =>
+                      editingQuestion
+                        ? setEditingQuestion({ ...editingQuestion, fieldType: e.target.value })
+                        : setNewQuestionType(e.target.value)
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-[#E8E5DF] bg-white text-xs text-[#222924]"
+                  >
+                    <option value="textarea">Texto Livre (Múltiplas linhas)</option>
+                    <option value="text">Resposta Curta (1 linha)</option>
+                    <option value="yes_no">Sim / Não + Observação</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+                <div className="flex-1">
+                  <label className="block text-[11px] font-semibold text-[#6B726B] mb-1">
+                    Orientação / Dica interna ao terapeuta (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={editingQuestion ? editingQuestion.hint || '' : newQuestionHint}
+                    onChange={(e) =>
+                      editingQuestion
+                        ? setEditingQuestion({ ...editingQuestion, hint: e.target.value })
+                        : setNewQuestionHint(e.target.value)
+                    }
+                    placeholder="Ex: Permita que o paciente fale livremente sem interromper..."
+                    className="w-full px-3 py-2 rounded-xl border border-[#E8E5DF] bg-white text-xs text-[#222924]"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {editingQuestion && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingQuestion(null)}
+                      className="px-3.5 py-2 rounded-xl border border-[#E8E5DF] bg-white text-xs font-semibold text-[#6B726B]"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={isSavingQuestion}
+                    onClick={async () => {
+                      const qText = editingQuestion
+                        ? editingQuestion.question
+                        : newQuestionText;
+                      if (!qText.trim()) return;
+                      setIsSavingQuestion(true);
+                      try {
+                        if (editingQuestion) {
+                          await updateAnamnesisQuestionAction({
+                            id: editingQuestion.id,
+                            question: editingQuestion.question,
+                            hint: editingQuestion.hint || '',
+                            fieldType: editingQuestion.fieldType,
+                          });
+                          setEditingQuestion(null);
+                        } else {
+                          await createAnamnesisQuestionAction({
+                            question: newQuestionText,
+                            hint: newQuestionHint,
+                            fieldType: newQuestionType,
+                          });
+                          setNewQuestionText('');
+                          setNewQuestionHint('');
+                        }
+                        router.refresh();
+                      } catch (err: any) {
+                        alert(err.message);
+                      } finally {
+                        setIsSavingQuestion(false);
+                      }
+                    }}
+                    className="px-4 py-2 rounded-xl bg-[#1F4D36] text-white text-xs font-bold hover:bg-[#183C2A] flex items-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    {editingQuestion ? 'Atualizar Pergunta' : 'Incluir Pergunta'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Lista de Perguntas Cadastradas */}
+            {anamnesisQuestions.length === 0 ? (
+              <div className="text-center py-10 bg-[#FBF9F5] rounded-xl border border-[#E8E5DF] text-[#6B726B] space-y-1.5">
+                <p className="text-xs font-semibold text-[#222924]">
+                  Nenhuma pergunta de anamnese configurada ainda.
+                </p>
+                <p className="text-[11px]">
+                  Adicione perguntas acima ou clique em &quot;Importar Perguntas Sugeridas B.E.M.&quot;.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {anamnesisQuestions.map((q, idx) => (
+                  <div
+                    key={q.id}
+                    className="p-4 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] flex items-start justify-between gap-3"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-[#EBF3ED] text-[#1F4D36] font-bold text-xs flex items-center justify-center shrink-0">
+                          {idx + 1}
+                        </span>
+                        <h4 className="text-xs sm:text-sm font-bold text-[#222924]">
+                          {q.question}
+                        </h4>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-white border border-[#E8E5DF] text-[#6B726B]">
+                          {q.fieldType === 'yes_no'
+                            ? 'Sim/Não'
+                            : q.fieldType === 'text'
+                            ? 'Curta'
+                            : 'Texto Livre'}
+                        </span>
+                      </div>
+                      {q.hint && (
+                        <p className="text-[11px] text-[#6B726B] pl-8 italic">{q.hint}</p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setEditingQuestion(q)}
+                        className="px-2.5 py-1 rounded-lg border border-[#E8E5DF] bg-white text-xs font-semibold text-[#222924] hover:bg-gray-50"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (confirm(`Remover a pergunta "${q.question}"?`)) {
+                            await deleteAnamnesisQuestionAction(q.id);
+                            router.refresh();
+                          }
+                        }}
+                        className="p-1.5 rounded-lg border border-red-100 text-red-500 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Botão de Salvar Alterações */}
-        {activeTab !== 'pacotes' && (
+        {activeTab !== 'pacotes' && activeTab !== 'anamnese' && (
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
               type="submit"

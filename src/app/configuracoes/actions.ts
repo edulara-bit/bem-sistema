@@ -283,3 +283,121 @@ export async function sendTestWhatsAppMessageAction(targetPhone: string) {
   return res;
 }
 
+// ================= GESTÃO DE PERGUNTAS DE ANAMNESE DO CONSULTÓRIO =================
+
+export async function createAnamnesisQuestionAction(payload: {
+  question: string;
+  hint?: string;
+  fieldType: string;
+}) {
+  const tenant = await getCurrentTenant();
+  if (!tenant) throw new Error('Consultório não identificado.');
+
+  const q = (payload.question || '').trim();
+  if (!q) throw new Error('Digite o texto da pergunta de anamnese.');
+
+  const count = await prisma.anamnesisQuestion.count({ where: { tenantId: tenant.id } });
+
+  await prisma.anamnesisQuestion.create({
+    data: {
+      tenantId: tenant.id,
+      question: q,
+      hint: payload.hint?.trim() || null,
+      fieldType: payload.fieldType || 'textarea',
+      sortOrder: count + 1,
+      active: true,
+    },
+  });
+
+  revalidatePath('/configuracoes');
+  revalidatePath('/pacientes');
+  return { success: true };
+}
+
+export async function updateAnamnesisQuestionAction(payload: {
+  id: string;
+  question: string;
+  hint?: string;
+  fieldType: string;
+}) {
+  const tenant = await getCurrentTenant();
+  if (!tenant) throw new Error('Consultório não identificado.');
+
+  await prisma.anamnesisQuestion.updateMany({
+    where: { id: payload.id, tenantId: tenant.id },
+    data: {
+      question: payload.question.trim(),
+      hint: payload.hint?.trim() || null,
+      fieldType: payload.fieldType || 'textarea',
+    },
+  });
+
+  revalidatePath('/configuracoes');
+  revalidatePath('/pacientes');
+  return { success: true };
+}
+
+export async function deleteAnamnesisQuestionAction(id: string) {
+  const tenant = await getCurrentTenant();
+  if (!tenant) throw new Error('Consultório não identificado.');
+
+  await prisma.anamnesisQuestion.deleteMany({
+    where: { id, tenantId: tenant.id },
+  });
+
+  revalidatePath('/configuracoes');
+  revalidatePath('/pacientes');
+  return { success: true };
+}
+
+export async function seedStarterAnamnesisQuestionsAction() {
+  const tenant = await getCurrentTenant();
+  if (!tenant) throw new Error('Consultório não identificado.');
+
+  const starters = [
+    {
+      question: 'Qual o principal motivo que o trouxe para esta sessão hoje?',
+      hint: 'Permita que o paciente se expresse livremente sobre suas queixas físicas e emocionais.',
+      fieldType: 'textarea',
+    },
+    {
+      question: 'Se você pudesse resumir em uma frase, qual é o problema real ou dilema que está enfrentando?',
+      hint: 'Alinhado com a identificação do Problema Real / Dilema / Situação existente.',
+      fieldType: 'textarea',
+    },
+    {
+      question: 'Como você está se sentindo internamente e no corpo sobre tudo isso?',
+      hint: 'Observe tensões, dores recorrentes ou sensações viscerais.',
+      fieldType: 'textarea',
+    },
+    {
+      question: 'Há quanto tempo você está vivendo essa situação?',
+      hint: 'Identifique marcos na Linha do Tempo (Timeline).',
+      fieldType: 'text',
+    },
+    {
+      question: 'Faz uso de medicamentos contínuos ou acompanhamento médico atualmente?',
+      hint: '',
+      fieldType: 'yes_no',
+    },
+  ];
+
+  const currentCount = await prisma.anamnesisQuestion.count({ where: { tenantId: tenant.id } });
+  for (let i = 0; i < starters.length; i++) {
+    await prisma.anamnesisQuestion.create({
+      data: {
+        tenantId: tenant.id,
+        question: starters[i].question,
+        hint: starters[i].hint || null,
+        fieldType: starters[i].fieldType,
+        sortOrder: currentCount + i + 1,
+        active: true,
+      },
+    });
+  }
+
+  revalidatePath('/configuracoes');
+  revalidatePath('/pacientes');
+  return { success: true };
+}
+

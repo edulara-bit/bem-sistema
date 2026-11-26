@@ -347,6 +347,7 @@ export async function retrieveBemKnowledge(params: {
   agentSlug: string;
   query: string;
   emotionNames?: string[];
+  frequencyNumbers?: string[];
   topK?: number;
 }) {
   const topK = params.topK || 6;
@@ -437,12 +438,27 @@ export async function retrieveBemKnowledge(params: {
     )
     .slice(0, 8);
 
+  // 4. Catálogo oficial de Frequências Vibracionais B.E.M. associadas às emoções da sessão
+  const freqSet = new Set((params.frequencyNumbers || []).map((f) => String(f).trim().toLowerCase()));
+  const allFrequencies =
+    freqSet.size > 0 ? await prisma.frequency.findMany() : [];
+  const matchedFrequencies = allFrequencies.filter((f) =>
+    freqSet.has(f.number.trim().toLowerCase())
+  );
+
   const sourcesUsed = Array.from(
     new Set([
       ...pinnedSources.map((p) => `${p.title}${p.authorOrRef ? ` (${p.authorOrRef})` : ''}`),
       ...topChunks.map((c) => `${c.sourceTitle}${c.authorOrRef ? ` (${c.authorOrRef})` : ''}`),
       ...(matchedEmotions.length > 0
-        ? [`Catálogo B.E.M.: ${matchedEmotions.map((e) => e.title).join(', ')}`]
+        ? [`Emoções B.E.M.: ${matchedEmotions.map((e) => e.title).join(', ')}`]
+        : []),
+      ...(matchedFrequencies.length > 0
+        ? [
+            `Frequências B.E.M.: ${matchedFrequencies
+              .map((f) => `Nº ${f.number} (${f.title})`)
+              .join(', ')}`,
+          ]
         : []),
     ])
   );
@@ -469,6 +485,13 @@ export async function retrieveBemKnowledge(params: {
       formattedContext += `- **${em.title}** (${em.type}): ${em.description}${
         em.phrases ? ` | Frases de Ancoragem: ${em.phrases}` : ''
       }\n`;
+    }
+  }
+
+  if (matchedFrequencies.length > 0) {
+    formattedContext += `\n### FREQUÊNCIAS VIBRACIONAIS B.E.M. (EXPRESSÕES DA REALIDADE ASSOCIADAS ÀS EMOÇÕES):\n`;
+    for (const fq of matchedFrequencies) {
+      formattedContext += `- **Frequência Nº ${fq.number} — ${fq.title}**: ${fq.description}\n`;
     }
   }
 

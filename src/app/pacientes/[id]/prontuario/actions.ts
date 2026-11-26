@@ -1,24 +1,32 @@
 'use server';
 
-import { getTenantDb } from '@/lib/prisma';
+import { getTenantDb, prisma } from '@/lib/prisma';
 import { getCurrentTenant } from '@/lib/current-tenant';
-import { generateSoapWithAI } from '@/lib/ai/gemini';
 import { encryptText } from '@/lib/crypto';
 import { revalidatePath } from 'next/cache';
 
-export async function generateSoapAction(rawNotes: string, patientName: string) {
-  if (!rawNotes || rawNotes.trim().length < 5) {
-    throw new Error('Anotações insuficientes para gerar a análise SOAP.');
-  }
-  return await generateSoapWithAI(rawNotes, patientName);
+export async function savePatientAnamnesisAction(payload: {
+  patientId: string;
+  answers: Record<string, string>;
+}) {
+  const tenant = await getCurrentTenant();
+  if (!tenant) throw new Error('Consultório não encontrado.');
+
+  const anamnesisEnc = encryptText(JSON.stringify(payload.answers || {}));
+
+  await prisma.patient.updateMany({
+    where: { id: payload.patientId, tenantId: tenant.id },
+    data: { anamnesisEnc },
+  });
+
+  revalidatePath(`/pacientes/${payload.patientId}/prontuario`);
+  return { success: true };
 }
 
 export async function saveClinicalRecordAction({
   patientId,
   appointmentId,
   rawNotes,
-  soap,
-  aiAssisted,
   isLocked,
   emocoesTrabalhadas = [],
   situacoes = [],
@@ -26,8 +34,6 @@ export async function saveClinicalRecordAction({
   patientId: string;
   appointmentId?: string;
   rawNotes: string;
-  soap: { subjective: string; objective: string; assessment: string; plan: string };
-  aiAssisted: boolean;
   isLocked: boolean;
   emocoesTrabalhadas?: string[];
   situacoes?: {
@@ -35,6 +41,11 @@ export async function saveClinicalRecordAction({
     situacao: string;
     complemento?: string;
     emocoes?: string[];
+    pares?: {
+      emocao: string;
+      frequenciaNumero?: string;
+      frequenciaTitulo?: string;
+    }[];
   }[];
 }) {
   const tenant = await getCurrentTenant();
@@ -42,11 +53,12 @@ export async function saveClinicalRecordAction({
 
   const db = getTenantDb(tenant.id);
 
-  // Criptografa rascunho e SOAP com AES-256-GCM para sigilo estrito
-  const rawDraftEnc = encryptText(rawNotes);
-  const soapEnc = encryptText(JSON.stringify(soap));
+  const rawDraftEnc = encryptText(rawNotes || '');
+  // Mantém campo soapEnc válido em JSON vazio para retrocompatibilidade do banco
+  const soapEnc = encryptText(
+    JSON.stringify({ subjective: '', objective: '', assessment: '', plan: '' })
+  );
 
-  // Empacota emoções e situações estruturadas
   const payloadToStore = {
     emocoes: emocoesTrabalhadas,
     situacoes: situacoes,
@@ -58,17 +70,15 @@ export async function saveClinicalRecordAction({
     sessionDate: new Date(),
     rawDraftEnc,
     soapEnc,
-    aiAssisted,
+    aiAssisted: false,
     isLocked,
     emocoesTrabalhadas: JSON.stringify(payloadToStore),
   });
 
-  // Se houver agendamento vinculado, marca como 'completed'
   if (appointmentId) {
     await db.appointments.updateStatus(appointmentId, 'completed');
   }
 
-  // Se o paciente tiver pacote ativo, incrementa o contador de sessões utilizadas
   const patient = await db.patients.findUnique(patientId);
   if (patient && (patient.sessionTypePreference === 'package' || patient.packageId)) {
     await db.patients.update(patientId, {
@@ -81,7 +91,6 @@ export async function saveClinicalRecordAction({
   revalidatePath('/pacientes');
   revalidatePath('/');
 
-  // Dispara evento de sessão concluída para fluxos n8n (se configurado)
   try {
     const { fireN8nWebhook } = await import('@/lib/ai/orchestrator');
     await fireN8nWebhook(tenant.id, 'session.completed', {
@@ -90,10 +99,10 @@ export async function saveClinicalRecordAction({
       patientName: patient?.name || null,
       appointmentId: appointmentId || null,
       emocoesTrabalhadas,
-      situacoesCount: situacoes.length,
+      situacoes,
     });
   } catch {
-    // Não bloqueia o salvamento clínico caso webhook falhe
+    // Não bloqueia salvamento clínico
   }
 
   return { success: true, recordId: record.id };
@@ -110,6 +119,11 @@ export async function compilePatientFeedbackAction(payload: {
     situacao: string;
     complemento?: string;
     emocoes?: string[];
+    pares?: {
+      emocao: string;
+      frequenciaNumero?: string;
+      frequenciaTitulo?: string;
+    }[];
   }[];
 }) {
   const tenant = await getCurrentTenant();
@@ -214,4 +228,3 @@ export async function addPatientMemoryFromProntuarioAction(payload: {
   revalidatePath('/ia-copiloto');
   return { success: true };
 }
-

@@ -59,6 +59,7 @@ model Tenant {
   availabilityRules  AvailabilityRule[]
   blockedDates       BlockedDate[]
   blockedSlots       BlockedSlot[]
+  anamnesisQuestions AnamnesisQuestion[]
   aiAgentConfigs     AiAgentConfig[]
   knowledgeSources   KnowledgeSource[]
   knowledgeChunks    KnowledgeChunk[]
@@ -94,6 +95,7 @@ model Patient {
   phoneEnc     String    // Criptografado AES-256-GCM
   emailEnc     String?   // Criptografado AES-256-GCM
   cpfEnc       String?   // Criptografado AES-256-GCM
+  anamnesisEnc String?   // Respostas da Anamnese criptografadas AES-256-GCM
   birthDate    DateTime?
   status       String    @default("active") // active, inactive, archived
   notes        String?   // Observações gerais não-clínicas
@@ -283,6 +285,33 @@ model Emotion {
 
   @@index([tenantId])
   @@index([title])
+}
+
+model Frequency {
+  id          String   @id @default(cuid())
+  number      String   // Número identificador da frequência (ex: "1", "2", ... "9", etc.)
+  title       String   // Título da expressão vibracional
+  description String   // Descrição profunda da expressão vibracional na realidade / protocolo B.E.M.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([number])
+}
+
+model AnamnesisQuestion {
+  id        String   @id @default(cuid())
+  tenantId  String
+  question  String   // Pergunta exibida na ficha de anamnese do prontuário
+  hint      String?  // Orientação opcional para o terapeuta
+  fieldType String   @default("textarea") // 'textarea' | 'text' | 'yes_no'
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, sortOrder])
 }
 
 model AiAgentConfig {

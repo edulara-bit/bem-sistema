@@ -25,7 +25,7 @@ export const baseNavItems = [
   { href: '/cockpit', label: 'Hoje', icon: LayoutDashboard },
   { href: '/agenda', label: 'Agenda', icon: Calendar },
   { href: '/pacientes', label: 'Pacientes & Prontuário', icon: Users },
-  { href: '/emocoes', label: 'Emoções & Bioenergética', icon: Heart },
+  { href: '/emocoes', label: 'Emoções & Frequências', icon: Heart },
   { href: '/captacao', label: 'Captação & Funil', icon: UserPlus },
   { href: '/financeiro', label: 'Financeiro', icon: DollarSign },
   { href: '/metas', label: 'Metas & Burnout', icon: Target },

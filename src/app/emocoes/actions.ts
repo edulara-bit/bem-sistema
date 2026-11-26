@@ -17,11 +17,11 @@ export async function updateEmotionAction(formData: FormData) {
   await prisma.emotion.update({
     where: { id },
     data: {
-      title,
-      code,
+      title: title.trim(),
+      code: code.trim(),
       type,
-      description,
-      phrases,
+      description: description.trim(),
+      phrases: phrases?.trim() || null,
     },
   });
 
@@ -41,12 +41,12 @@ export async function createEmotionAction(formData: FormData) {
 
   await prisma.emotion.create({
     data: {
-      tenantId: null, // Catálogo oficial global mantido exclusivamente pelo Admin
-      title,
-      code,
+      tenantId: null,
+      title: title.trim(),
+      code: code.trim(),
       type,
-      description,
-      phrases,
+      description: description.trim(),
+      phrases: phrases?.trim() || null,
     },
   });
 
@@ -64,5 +64,70 @@ export async function deleteEmotionAction(id: string) {
 
   revalidatePath('/emocoes');
   revalidatePath('/admin');
+  return { success: true };
+}
+
+// ================= FREQUÊNCIAS VIBRACIONAIS B.E.M. (EXCLUSIVO ADMIN) =================
+
+export async function createFrequencyAction(formData: FormData) {
+  await requireSuperAdmin();
+
+  const number = ((formData.get('number') as string) || '').trim();
+  const title = ((formData.get('title') as string) || '').trim();
+  const description = ((formData.get('description') as string) || '').trim();
+
+  if (!number || !title || !description) {
+    throw new Error('Preencha o Número, o Título e a Descrição da frequência.');
+  }
+
+  await prisma.frequency.create({
+    data: {
+      number,
+      title,
+      description,
+    },
+  });
+
+  revalidatePath('/emocoes');
+  revalidatePath('/pacientes');
+  revalidatePath('/admin');
+  return { success: true };
+}
+
+export async function updateFrequencyAction(formData: FormData) {
+  await requireSuperAdmin();
+
+  const id = formData.get('id') as string;
+  const number = ((formData.get('number') as string) || '').trim();
+  const title = ((formData.get('title') as string) || '').trim();
+  const description = ((formData.get('description') as string) || '').trim();
+
+  if (!id || !number || !title || !description) {
+    throw new Error('Preencha o Número, o Título e a Descrição da frequência.');
+  }
+
+  await prisma.frequency.update({
+    where: { id },
+    data: {
+      number,
+      title,
+      description,
+    },
+  });
+
+  revalidatePath('/emocoes');
+  revalidatePath('/pacientes');
+  return { success: true };
+}
+
+export async function deleteFrequencyAction(id: string) {
+  await requireSuperAdmin();
+
+  await prisma.frequency.delete({
+    where: { id },
+  });
+
+  revalidatePath('/emocoes');
+  revalidatePath('/pacientes');
   return { success: true };
 }

@@ -307,12 +307,23 @@ async function buildPatientClinicalSummary(tenantId: string, patientId: string, 
     }
 
     const sitText = situacoes
-      .map(
-        (s: any) =>
-          `${s.categoria} > ${s.situacao}${s.complemento ? ` (${s.complemento})` : ''}${
-            s.emocoes?.length ? ` [${s.emocoes.join(', ')}]` : ''
-          }`
-      )
+      .map((s: any) => {
+        const pairsStr = Array.isArray(s.pares) && s.pares.length > 0
+          ? s.pares
+              .map(
+                (p: any) =>
+                  `${p.emocao}${
+                    p.frequenciaNumero
+                      ? ` (Freq. ${p.frequenciaNumero}${p.frequenciaTitulo ? ` - ${p.frequenciaTitulo}` : ''})`
+                      : ''
+                  }`
+              )
+              .join(', ')
+          : s.emocoes?.join(', ') || '';
+        return `${s.categoria} > ${s.situacao}${s.complemento ? ` (${s.complemento})` : ''}${
+          pairsStr ? ` [${pairsStr}]` : ''
+        }`;
+      })
       .join('; ');
 
     const d = new Date(r.sessionDate).toLocaleDateString('pt-BR');
@@ -333,6 +344,7 @@ export async function runBemAgent(params: {
   threadId?: string | null;
   extraContext?: string;
   emotionHints?: string[];
+  frequencyHints?: string[];
 }) {
   await ensureAiTables(params.tenantId);
 
@@ -360,6 +372,7 @@ export async function runBemAgent(params: {
       agentSlug: params.agentSlug,
       query: sanitizedUserPrompt,
       emotionNames: params.emotionHints,
+      frequencyNumbers: params.frequencyHints,
     }),
     buildMemoryPromptContext({
       tenantId: params.tenantId,
@@ -559,6 +572,11 @@ export async function compilePostSessionFeedback(params: {
     situacao: string;
     complemento?: string;
     emocoes?: string[];
+    pares?: Array<{
+      emocao: string;
+      frequenciaNumero?: string;
+      frequenciaTitulo?: string;
+    }>;
   }>;
   deliveryModeOverride?: 'review' | 'auto';
   enqueueDispatch?: boolean;
@@ -574,36 +592,58 @@ export async function compilePostSessionFeedback(params: {
     new Set([
       ...(params.emocoesTrabalhadas || []),
       ...(params.situacoes || []).flatMap((s) => s.emocoes || []),
+      ...(params.situacoes || []).flatMap((s) => (s.pares || []).map((p) => p.emocao)),
     ])
+  ).filter(Boolean);
+
+  const allFreqNumbers = Array.from(
+    new Set(
+      (params.situacoes || [])
+        .flatMap((s) => (s.pares || []).map((p) => p.frequenciaNumero || ''))
+        .filter(Boolean)
+    )
   );
 
   const situacoesDesc = (params.situacoes || [])
-    .map(
-      (s) =>
-        `- Categoria: ${s.categoria} | Situação: ${s.situacao}${
-          s.complemento ? ` (${ sanitizeClinicalDraft(s.complemento, patient.name) })` : ''
-        }${s.emocoes?.length ? ` -> Emoções associadas: ${s.emocoes.join(', ')}` : ''}`
-    )
+    .map((s) => {
+      const paresText =
+        s.pares && s.pares.length > 0
+          ? s.pares
+              .map(
+                (p) =>
+                  `${p.emocao}${
+                    p.frequenciaNumero
+                      ? ` [Frequência Nº ${p.frequenciaNumero}${
+                          p.frequenciaTitulo ? ` — ${p.frequenciaTitulo}` : ''
+                        }]`
+                      : ''
+                  }`
+              )
+              .join(' | ')
+          : (s.emocoes || []).join(', ');
+
+      return `- Protocolo: ${s.categoria} ➔ ${s.situacao}${
+        s.complemento ? ` (${sanitizeClinicalDraft(s.complemento, patient.name)})` : ''
+      }${paresText ? ` => Emoções & Frequências trabalhadas: ${paresText}` : ''}`;
+    })
     .join('\n');
 
-  const sessionContext = `DADOS DA SESSÃO RECÉM-REALIZADA COM [PACIENTE]:
-Situações Mapeadas na Sessão:
-${situacoesDesc || '- Sessão de acolhimento e regulação emocional geral'}
+  const sessionContext = `DADOS DO ATENDIMENTO BIOENERGÉTICO B.E.M. REALIZADO COM [PACIENTE]:
+Protocolos, Emoções Desbloqueadas e Frequências Vibracionais Associadas:
+${situacoesDesc || '- Alinhamento bioenergético geral'}
 
-Emoções Trabalhadas / Liberadas:
-${allEmotions.join(', ') || 'Presença e auto-observação'}
+Emoções Totais Trabalhadas na Sessão:
+${allEmotions.join(', ') || 'Regulação bioenergética e presença'}
 
-Síntese Clínica (SOAP Anonimizado):
-- Relato: ${sanitizeClinicalDraft(params.soap?.subjective || params.rawNotes || '', patient.name)}
-- Avaliação: ${sanitizeClinicalDraft(params.soap?.assessment || '', patient.name)}
-- Plano Terapêutico: ${sanitizeClinicalDraft(params.soap?.plan || '', patient.name)}`;
+Observações do Terapeuta na Sessão:
+${sanitizeClinicalDraft(params.rawNotes || params.soap?.subjective || '', patient.name) || 'Sessão energética concluída.'}`;
 
-  const prompt = `Elabore uma mensagem de **Devolutiva Pós-Sessão B.E.M.** pronta para enviar no WhatsApp de [PACIENTE] (entre 2 e 4 parágrafos curtos, acolhedores e formatados para leitura agradável no celular).
-Inclua:
-1. Acolhimento caloroso reconhecendo o passo dado hoje na sessão.
-2. Uma síntese clara e humana do que trabalhamos e liberamos hoje (conectando as situações e emoções sem soar técnico ou patologizante).
-3. Uma Frase de Ancoragem inspirada nas emoções positivas da técnica B.E.M.
-4. Um pequeno exercício prático de percepção corporal/respiratória de 2 minutos para praticar até o nosso próximo encontro.`;
+  const prompt = `Elabore uma mensagem de **Devolutiva Pós-Sessão da Terapia B.E.M.** pronta para enviar no WhatsApp de [PACIENTE] (entre 2 e 4 parágrafos fluidos, acolhedores e inspiradores para leitura no celular).
+Inclua obrigatoriamente:
+1. Acolhimento caloroso pela sessão energética realizada hoje.
+2. Uma síntese clara e integradora conectando as situações trabalhadas, as **emoções desbloqueadas/ancoradas** E o sentido vibracional das **Frequências B.E.M.** associadas a essas emoções (usando as descrições das Frequências fornecidas na base de conhecimento, traduzidas em linguagem viva e acessível para a rotina de [PACIENTE]).
+3. Uma Frase de Ancoragem conectada à nova expressão vibracional aberta hoje.
+4. Uma orientação simples de percepção corporal/respiratória de 2 minutos para sustentar esse alinhamento energético nos próximos dias.`;
 
   const agentRes = await runBemAgent({
     tenantId: params.tenantId,
@@ -612,16 +652,19 @@ Inclua:
     patientId: patient.id,
     extraContext: sessionContext,
     emotionHints: allEmotions,
+    frequencyHints: allFreqNumbers,
   });
 
   // Registra memória estruturada da sessão na ficha evolutiva do paciente
   if (allEmotions.length > 0 || (params.situacoes && params.situacoes.length > 0)) {
-    const summaryTitle = `Sessão ${new Date().toLocaleDateString('pt-BR')}: ${
-      allEmotions.slice(0, 3).join(', ') || 'Integração B.E.M.'
+    const summaryTitle = `Sessão B.E.M. ${new Date().toLocaleDateString('pt-BR')}: ${
+      allEmotions.slice(0, 3).join(', ') || 'Alinhamento'
     }`;
-    const summaryContent = `Trabalhado: ${
+    const summaryContent = `Protocolos: ${
       (params.situacoes || []).map((s) => `${s.categoria}/${s.situacao}`).join(', ') || 'Geral'
-    }. Emoções: ${allEmotions.join(', ')}. Plano: ${params.soap?.plan || 'Auto-observação'}.`;
+    }. Emoções: ${allEmotions.join(', ')}.${
+      allFreqNumbers.length > 0 ? ` Frequências: Nº ${allFreqNumbers.join(', ')}.` : ''
+    }`;
 
     await createStructuredMemory({
       tenantId: params.tenantId,

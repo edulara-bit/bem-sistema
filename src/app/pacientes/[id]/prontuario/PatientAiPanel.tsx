@@ -218,7 +218,7 @@ export function PatientAiPanel({
               Compilação de Feedback Pós-Sessão para {patient.name}
             </h2>
             <p className="text-xs text-[#6B726B]">
-              Une automaticamente as situações apontadas (Medos, Relacionamento, Timeline), emoções trabalhadas, frases de ancoragem e a memória evolutiva do paciente.
+              Une automaticamente as situações apontadas (Medos, Relacionamento, Timeline), emoções trabalhadas, frequências vibracionais associadas, frases de ancoragem e a memória evolutiva do paciente.
             </p>
           </div>
 

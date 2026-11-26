@@ -24,10 +24,16 @@ export default async function ConfiguracoesPage() {
 
   const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/agendar?slug=${tenant.slug}`;
 
-  const packages = await prisma.package.findMany({
-    where: { tenantId: tenant.id },
-    orderBy: { createdAt: 'desc' },
-  });
+  const [packages, anamnesisQuestions] = await Promise.all([
+    prisma.package.findMany({
+      where: { tenantId: tenant.id },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.anamnesisQuestion.findMany({
+      where: { tenantId: tenant.id },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    }),
+  ]);
 
   return (
     <ConfiguracoesView
@@ -58,6 +64,7 @@ export default async function ConfiguracoesPage() {
         whatsappReminder2hText: tenant.whatsappReminder2hText,
       }}
       packages={packages}
+      anamnesisQuestions={anamnesisQuestions}
       publicUrl={publicUrl}
     />
   );
