@@ -27,6 +27,8 @@ export async function saveClinicalRecordAction({
   recordId,
   patientId,
   appointmentId,
+  sessionDateStr,
+  sessionTimeStr,
   rawNotes,
   isLocked,
   emocoesTrabalhadas = [],
@@ -35,6 +37,8 @@ export async function saveClinicalRecordAction({
   recordId?: string;
   patientId: string;
   appointmentId?: string;
+  sessionDateStr?: string;
+  sessionTimeStr?: string;
   rawNotes: string;
   isLocked: boolean;
   emocoesTrabalhadas?: string[];
@@ -77,6 +81,30 @@ export async function saveClinicalRecordAction({
       })
     : null;
 
+  const effectiveAppointmentId = existingRecord?.appointmentId || appointmentId || null;
+  const linkedAppointment = effectiveAppointmentId
+    ? await prisma.appointment.findFirst({
+        where: { id: effectiveAppointmentId, tenantId: tenant.id },
+      })
+    : null;
+
+  // Resolve a data/hora real da sessão (respeitando data retroativa escolhida ou data agendada na consulta)
+  let resolvedSessionDate: Date;
+  if (sessionDateStr && /^\d{4}-\d{2}-\d{2}$/.test(sessionDateStr.trim())) {
+    const safeTime =
+      sessionTimeStr && /^\d{2}:\d{2}$/.test(sessionTimeStr.trim())
+        ? sessionTimeStr.trim()
+        : '14:00';
+    const parsed = new Date(`${sessionDateStr.trim()}T${safeTime}:00-03:00`);
+    resolvedSessionDate = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  } else if (linkedAppointment?.scheduledAt) {
+    resolvedSessionDate = new Date(linkedAppointment.scheduledAt);
+  } else if (existingRecord?.sessionDate) {
+    resolvedSessionDate = new Date(existingRecord.sessionDate);
+  } else {
+    resolvedSessionDate = new Date();
+  }
+
   const patient = await db.patients.findUnique(patientId);
 
   let savedRecordId: string;
@@ -86,6 +114,7 @@ export async function saveClinicalRecordAction({
     const updated = await prisma.clinicalRecord.update({
       where: { id: existingRecord.id },
       data: {
+        sessionDate: resolvedSessionDate,
         rawDraftEnc,
         isLocked,
         emocoesTrabalhadas: JSON.stringify(payloadToStore),
@@ -95,8 +124,8 @@ export async function saveClinicalRecordAction({
   } else {
     const created = await db.records.create({
       patientId,
-      appointmentId: appointmentId || null,
-      sessionDate: new Date(),
+      appointmentId: effectiveAppointmentId,
+      sessionDate: resolvedSessionDate,
       rawDraftEnc,
       soapEnc,
       aiAssisted: false,
@@ -105,8 +134,8 @@ export async function saveClinicalRecordAction({
     });
     savedRecordId = created.id;
 
-    if (appointmentId) {
-      await db.appointments.updateStatus(appointmentId, 'completed');
+    if (effectiveAppointmentId) {
+      await db.appointments.updateStatus(effectiveAppointmentId, 'completed');
     }
 
     if (patient && (patient.sessionTypePreference === 'package' || patient.packageId)) {
@@ -114,6 +143,24 @@ export async function saveClinicalRecordAction({
         packageUsedSessions: (patient.packageUsedSessions || 0) + 1,
       });
     }
+  }
+
+  // Se houver agendamento vinculado e o terapeuta informou/alterou a data da sessão, sincroniza na Agenda e no Financeiro
+  if (effectiveAppointmentId && sessionDateStr) {
+    const isPast = resolvedSessionDate.getTime() < Date.now();
+    await Promise.all([
+      prisma.appointment.updateMany({
+        where: { id: effectiveAppointmentId, tenantId: tenant.id },
+        data: {
+          scheduledAt: resolvedSessionDate,
+          ...(isPast ? { reminderSent: true, reminder2hSent: true } : {}),
+        },
+      }),
+      prisma.financialTransaction.updateMany({
+        where: { tenantId: tenant.id, appointmentId: effectiveAppointmentId, status: 'pending' },
+        data: { dueDate: resolvedSessionDate },
+      }),
+    ]);
   }
 
   revalidatePath(`/pacientes/${patientId}/prontuario`);

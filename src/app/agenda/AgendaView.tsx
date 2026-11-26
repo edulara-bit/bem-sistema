@@ -1173,11 +1173,27 @@ export function AgendaView({
             </div>
 
             <form
-              action={async (formData) => {
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+                const openProntuarioAfter = submitter?.value === 'open_prontuario';
+                const formData = new FormData(e.currentTarget);
+                const chosenDate = (formData.get('date') as string) || '';
                 setIsSubmitting(true);
                 try {
-                  await createAppointmentAction(formData);
+                  const res = await createAppointmentAction(formData);
                   setShowModal(false);
+                  if (openProntuarioAfter && res?.patientId && res?.appointmentId) {
+                    router.push(`/pacientes/${res.patientId}/prontuario?appointmentId=${res.appointmentId}`);
+                  } else if (
+                    chosenDate &&
+                    (chosenDate < weeklySchedule.weekStartStr ||
+                      chosenDate > weeklySchedule.weekEndStr)
+                  ) {
+                    router.push(`/agenda?week=${chosenDate}`);
+                  } else {
+                    router.refresh();
+                  }
                 } catch (err: any) {
                   alert(err.message || 'Erro ao agendar sessão.');
                 } finally {
@@ -1258,20 +1274,30 @@ export function AgendaView({
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#E8E5DF]">
+              <div className="pt-2 flex flex-wrap items-center justify-end gap-2 border-t border-[#E8E5DF]">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-3.5 py-2 rounded-xl border border-[#E8E5DF] text-[#6B726B] font-semibold hover:bg-gray-50"
+                  className="px-3 py-2 rounded-xl border border-[#E8E5DF] text-[#6B726B] font-semibold hover:bg-gray-50"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
+                  value="save_only"
                   disabled={isSubmitting}
-                  className="px-4 py-2 rounded-xl bg-[#1F4D36] text-white font-semibold hover:bg-[#183C2A]"
+                  className="px-3.5 py-2 rounded-xl border border-[#1F4D36] bg-[#EBF3ED] text-[#1F4D36] font-bold hover:bg-[#dceade]"
                 >
-                  {isSubmitting ? 'Salvando...' : 'Confirmar Agendamento'}
+                  {isSubmitting ? 'Salvando...' : 'Salvar na Agenda'}
+                </button>
+                <button
+                  type="submit"
+                  value="open_prontuario"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 rounded-xl bg-[#1F4D36] text-white font-bold hover:bg-[#183C2A] flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {isSubmitting ? 'Abrindo...' : 'Salvar & Apontar Prontuário'}
                 </button>
               </div>
             </form>
@@ -1279,14 +1305,14 @@ export function AgendaView({
         </div>
       )}
 
-      {/* MODAL: Remarcar Sessão */}
+      {/* MODAL: Remarcar / Alterar Data da Sessão */}
       {rescheduleData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
           <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-xl border border-[#E8E5DF] space-y-4 animate-fade-in">
             <div className="flex items-center justify-between border-b border-[#E8E5DF] pb-3">
               <h3 className="font-bold text-[#222924] text-base flex items-center gap-2">
                 <RotateCcw className="w-5 h-5 text-[#1F4D36]" />
-                Remarcar Sessão
+                Alterar Data / Remarcar Sessão
               </h3>
               <button
                 type="button"
@@ -1314,7 +1340,6 @@ export function AgendaView({
                     name="newDate"
                     required
                     defaultValue={rescheduleData.date}
-                    min={todayStr}
                     className="w-full px-3 py-2 rounded-xl border border-[#E8E5DF] bg-white text-[#222924]"
                   />
                 </div>

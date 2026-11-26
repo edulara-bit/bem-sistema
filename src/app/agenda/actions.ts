@@ -16,18 +16,21 @@ export async function createAppointmentAction(formData: FormData) {
   const notes = (formData.get('notes') as string) || '';
 
   const scheduledAt = new Date(`${dateStr}T${timeStr}:00-03:00`);
+  const isRetroactive = scheduledAt.getTime() < Date.now();
 
   const db = getTenantDb(tenant.id);
 
-  // 1. Cria a sessão
+  // 1. Cria a sessão (se for retroativa, marca lembretes como já processados para não disparar WhatsApp indevido)
   const app = await db.appointments.create({
     patientId,
     scheduledAt,
     durationMin: 50,
-    status: 'scheduled',
+    status: isRetroactive ? 'completed' : 'scheduled',
     modality,
     price,
     notes,
+    reminderSent: isRetroactive,
+    reminder2hSent: isRetroactive,
     meetingUrl: modality === 'online' ? (tenant.meetingUrlDefault || 'https://meet.google.com/bem-terapia') : undefined,
   });
 
@@ -40,13 +43,13 @@ export async function createAppointmentAction(formData: FormData) {
     amount: price,
     dueDate: scheduledAt,
     status: 'pending',
-    description: `Sessão agendada - ${scheduledAt.toLocaleDateString('pt-BR')}`,
+    description: `Sessão agendada - ${scheduledAt.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`,
   });
 
   revalidatePath('/agenda');
   revalidatePath('/');
   revalidatePath('/financeiro');
-  return { success: true };
+  return { success: true, appointmentId: app.id, patientId };
 }
 
 export async function rescheduleAppointmentAction(id: string, newDate: string, newTime: string) {
@@ -54,15 +57,31 @@ export async function rescheduleAppointmentAction(id: string, newDate: string, n
   if (!tenant) throw new Error('Tenant não encontrado.');
 
   const scheduledAt = new Date(`${newDate}T${newTime}:00-03:00`);
+  const isRetroactive = scheduledAt.getTime() < Date.now();
 
   const db = getTenantDb(tenant.id);
   await db.appointments.update(id, {
     scheduledAt,
-    reminderSent: false,
-    reminder2hSent: false,
+    reminderSent: isRetroactive,
+    reminder2hSent: isRetroactive,
   });
 
+  // Sincroniza também a data no Prontuário (ClinicalRecord) e no vencimento financeiro caso já existam
+  const { prisma: prismaClient } = await import('@/lib/prisma');
+  await Promise.all([
+    prismaClient.clinicalRecord.updateMany({
+      where: { tenantId: tenant.id, appointmentId: id },
+      data: { sessionDate: scheduledAt },
+    }),
+    prismaClient.financialTransaction.updateMany({
+      where: { tenantId: tenant.id, appointmentId: id, status: 'pending' },
+      data: { dueDate: scheduledAt },
+    }),
+  ]);
+
   revalidatePath('/agenda');
+  revalidatePath('/pacientes');
+  revalidatePath('/financeiro');
   revalidatePath('/');
   return { success: true };
 }

@@ -51,6 +51,8 @@ export interface ApontamentoSituacao {
 interface HistoricalRecord {
   id: string;
   appointmentId?: string;
+  rawDateStr?: string;
+  rawTimeStr?: string;
   sessionDate: string;
   rawNotes?: string;
   soap: { subjective: string; objective: string; assessment: string; plan: string };
@@ -97,6 +99,10 @@ interface ProtocolNodeItem {
 export function ProntuarioView({
   patient,
   appointmentId,
+  defaultSessionDateStr = '',
+  defaultSessionTimeStr = '14:00',
+  todayDateStr = '',
+  nowTimeStr = '14:00',
   history = [],
   emotionsCatalog = [],
   frequenciesCatalog = [],
@@ -119,6 +125,10 @@ export function ProntuarioView({
     packageUsedSessions?: number | null;
   };
   appointmentId?: string;
+  defaultSessionDateStr?: string;
+  defaultSessionTimeStr?: string;
+  todayDateStr?: string;
+  nowTimeStr?: string;
   history: HistoricalRecord[];
   emotionsCatalog?: EmotionItem[];
   frequenciesCatalog?: FrequencyItem[];
@@ -149,6 +159,13 @@ export function ProntuarioView({
 
   const [editingRecord, setEditingRecord] = useState<HistoricalRecord | null>(
     initialLinkedRecord
+  );
+
+  const [sessionDateStr, setSessionDateStr] = useState<string>(
+    initialLinkedRecord?.rawDateStr || defaultSessionDateStr || todayDateStr
+  );
+  const [sessionTimeStr, setSessionTimeStr] = useState<string>(
+    initialLinkedRecord?.rawTimeStr || defaultSessionTimeStr || nowTimeStr
   );
 
   const [activeTab, setActiveTab] = useState<
@@ -255,6 +272,8 @@ export function ProntuarioView({
 
   const handleStartEditingRecord = (record: HistoricalRecord) => {
     setEditingRecord(record);
+    setSessionDateStr(record.rawDateStr || todayDateStr);
+    setSessionTimeStr(record.rawTimeStr || nowTimeStr);
     setRawNotes(record.rawNotes || '');
     setSelectedEmotions(record.emocoesTrabalhadas ? [...record.emocoesTrabalhadas] : []);
     setSituacoesList(
@@ -263,6 +282,8 @@ export function ProntuarioView({
     setCurrentComplement('');
     setCurrentPairs([]);
     setPendingEmotionToPick('');
+    setEmotionComboQuery('');
+    setEmotionComboOpen(false);
     setLastSavedLocal(null);
     setActiveTab('nova_evolucao');
     if (typeof window !== 'undefined') {
@@ -272,12 +293,16 @@ export function ProntuarioView({
 
   const handleCancelEditingRecord = (goToNewBlank = false) => {
     setEditingRecord(null);
+    setSessionDateStr(todayDateStr || defaultSessionDateStr);
+    setSessionTimeStr(nowTimeStr || defaultSessionTimeStr);
     setRawNotes('');
     setSelectedEmotions([]);
     setSituacoesList([]);
     setCurrentComplement('');
     setCurrentPairs([]);
     setPendingEmotionToPick('');
+    setEmotionComboQuery('');
+    setEmotionComboOpen(false);
     setLastSavedLocal(null);
     setActiveTab(goToNewBlank ? 'nova_evolucao' : 'historico');
   };
@@ -531,7 +556,12 @@ export function ProntuarioView({
   };
 
   const handleSaveRecord = async (isLocked = false) => {
-    if (!rawNotes.trim() && selectedEmotions.length === 0 && situacoesList.length === 0) {
+    if (
+      !editingRecord &&
+      !rawNotes.trim() &&
+      selectedEmotions.length === 0 &&
+      situacoesList.length === 0
+    ) {
       alert(
         'Adicione ao menos um apontamento de Situação/Protocolo, Emoção trabalhada ou observação da sessão.'
       );
@@ -543,6 +573,8 @@ export function ProntuarioView({
         recordId: editingRecord?.id,
         patientId: patient.id,
         appointmentId: editingRecord?.appointmentId || appointmentId,
+        sessionDateStr,
+        sessionTimeStr,
         rawNotes,
         isLocked,
         emocoesTrabalhadas: selectedEmotions,
@@ -982,6 +1014,47 @@ export function ProntuarioView({
               </div>
             </div>
           )}
+
+          {/* DATA E HORÁRIO DA SESSÃO (Suporta Sessões Retroativas e Correção de Data) */}
+          <div className="bg-white rounded-2xl border border-[#E8E5DF] shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-bold text-[#222924] flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#1F4D36]" />
+                Data e Horário da Sessão Realizada
+              </h2>
+              <p className="text-[11px] text-[#6B726B] mt-0.5">
+                {editingRecord
+                  ? 'Você pode corrigir ou ajustar livremente a data e o horário desta sessão já registrada.'
+                  : 'Informe a data real em que o atendimento aconteceu (aceita datas retroativas de anotações em papel).'}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-[#6B726B] mb-1">
+                  Data da Sessão
+                </label>
+                <input
+                  type="date"
+                  value={sessionDateStr}
+                  onChange={(e) => setSessionDateStr(e.target.value)}
+                  className="px-3 py-2 rounded-xl border border-[#1F4D36]/30 bg-[#FBF9F5] text-xs font-bold text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/25"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-[#6B726B] mb-1">
+                  Horário
+                </label>
+                <input
+                  type="time"
+                  value={sessionTimeStr}
+                  onChange={(e) => setSessionTimeStr(e.target.value)}
+                  className="px-3 py-2 rounded-xl border border-[#1F4D36]/30 bg-[#FBF9F5] text-xs font-bold text-[#222924] focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/25"
+                />
+              </div>
+            </div>
+          </div>
 
           {/* 1. SITUAÇÕES & PROTOCOLOS BIOENERGÉTICOS COM EMOÇÃO + FREQUÊNCIA NA FRENTE */}
           <div className="bg-white rounded-2xl border border-[#E8E5DF] shadow-sm p-5 sm:p-6 space-y-4">

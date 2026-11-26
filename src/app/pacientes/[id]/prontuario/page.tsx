@@ -5,6 +5,7 @@ import { getCurrentUserContext } from '@/lib/admin-guard';
 import { decryptText } from '@/lib/crypto';
 import { ensureAiTables } from '@/lib/ai/init-db';
 import { listStructuredMemories } from '@/lib/ai/memory';
+import { formatAppointmentDateTime } from '@/lib/schedule-utils';
 import { ProntuarioView } from './ProntuarioView';
 
 export default async function ProntuarioPage({
@@ -39,6 +40,7 @@ export default async function ProntuarioPage({
     anamnesisQuestions,
     freshTenant,
     userCtx,
+    linkedAppointment,
   ] = await Promise.all([
     prisma.emotion.findMany({
       orderBy: [{ title: 'asc' }],
@@ -72,6 +74,11 @@ export default async function ProntuarioPage({
       select: { aiDefaultDeliveryMode: true, aiAgentsEnabled: true },
     }),
     getCurrentUserContext(),
+    appointmentId
+      ? prisma.appointment.findFirst({
+          where: { id: appointmentId, tenantId: tenant.id },
+        })
+      : Promise.resolve(null),
   ]);
 
   frequencies.sort((a, b) =>
@@ -121,9 +128,15 @@ export default async function ProntuarioPage({
       }
     }
 
+    const { dateStr: rawDateStr, timeStr: rawTimeStr } = formatAppointmentDateTime(
+      r.sessionDate
+    );
+
     return {
       id: r.id,
       appointmentId: r.appointmentId || undefined,
+      rawDateStr,
+      rawTimeStr,
       sessionDate: new Date(r.sessionDate).toLocaleDateString('pt-BR', {
         timeZone: 'America/Sao_Paulo',
         day: '2-digit',
@@ -145,6 +158,11 @@ export default async function ProntuarioPage({
     };
   });
 
+  const nowParts = formatAppointmentDateTime(new Date());
+  const linkedParts = linkedAppointment
+    ? formatAppointmentDateTime(linkedAppointment.scheduledAt)
+    : null;
+
   const isSuperAdmin = Boolean(userCtx?.isSuperAdmin);
   const aiAgentsEnabled = Boolean(freshTenant?.aiAgentsEnabled || isSuperAdmin);
 
@@ -160,6 +178,10 @@ export default async function ProntuarioPage({
         packageUsedSessions: patient.packageUsedSessions,
       }}
       appointmentId={appointmentId}
+      defaultSessionDateStr={linkedParts?.dateStr || nowParts.dateStr}
+      defaultSessionTimeStr={linkedParts?.timeStr || nowParts.timeStr}
+      todayDateStr={nowParts.dateStr}
+      nowTimeStr={nowParts.timeStr}
       history={history}
       emotionsCatalog={emotions.map((e: any) => ({
         id: e.id,
