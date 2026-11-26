@@ -1,20 +1,29 @@
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserContext } from '@/lib/admin-guard';
+import { ensureAiTables } from '@/lib/ai/init-db';
 import { AdminView } from './AdminView';
 
 export const metadata = {
   title: 'Administração Geral — Plataforma B.E.M.',
-  description: 'Gestão exclusiva de terapeutas, permissões de Agentes B.E.M. e consultórios.',
+  description:
+    'Gestão exclusiva de terapeutas, categorias/subcategorias de protocolos B.E.M., permissões de Agentes e consultórios.',
 };
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const ctx = await getCurrentUserContext();
   if (!ctx || !ctx.isSuperAdmin) {
     redirect('/cockpit');
   }
 
-  const [tenants, emotionsCount] = await Promise.all([
+  await ensureAiTables(ctx.homeTenantId);
+  const { tab } = await searchParams;
+
+  const [tenants, emotionsCount, protocolNodes] = await Promise.all([
     prisma.tenant.findMany({
       include: {
         users: {
@@ -39,11 +48,21 @@ export default async function AdminPage() {
       orderBy: { createdAt: 'asc' },
     }),
     prisma.emotion.count(),
+    prisma.protocolNode.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { title: 'asc' }],
+    }),
   ]);
 
   return (
     <AdminView
+      initialTab={tab === 'protocolos' ? 'protocolos' : 'consultorios'}
       emotionsCount={emotionsCount}
+      protocolNodes={protocolNodes.map((n) => ({
+        id: n.id,
+        title: n.title,
+        parentId: n.parentId,
+        sortOrder: n.sortOrder,
+      }))}
       tenants={tenants.map((t) => {
         const owner = t.users[0] || null;
         return {

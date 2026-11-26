@@ -87,12 +87,20 @@ interface AnamnesisQuestionItem {
   fieldType: string;
 }
 
+interface ProtocolNodeItem {
+  id: string;
+  title: string;
+  parentId: string | null;
+  sortOrder: number;
+}
+
 export function ProntuarioView({
   patient,
   appointmentId,
   history = [],
   emotionsCatalog = [],
   frequenciesCatalog = [],
+  protocolNodes = [],
   anamnesisQuestions = [],
   initialAnamnesisAnswers = {},
   patientMemories = [],
@@ -114,6 +122,7 @@ export function ProntuarioView({
   history: HistoricalRecord[];
   emotionsCatalog?: EmotionItem[];
   frequenciesCatalog?: FrequencyItem[];
+  protocolNodes?: ProtocolNodeItem[];
   anamnesisQuestions?: AnamnesisQuestionItem[];
   initialAnamnesisAnswers?: Record<string, string>;
   patientMemories?: DecryptedMemoryItem[];
@@ -161,6 +170,19 @@ export function ProntuarioView({
   );
   const [currentCategory, setCurrentCategory] = useState<string>('Medos');
   const [currentSituation, setCurrentSituation] = useState<string>('Abandono');
+  const rootProtocolNodes = protocolNodes.filter((n) => !n.parentId);
+  const getProtocolChildren = (parentId: string) =>
+    protocolNodes.filter((n) => n.parentId === parentId);
+
+  const [selectedRootNodeId, setSelectedRootNodeId] = useState<string>(
+    rootProtocolNodes[0]?.id || ''
+  );
+  const [selectedChainIds, setSelectedChainIds] = useState<string[]>(() => {
+    const firstRoot = rootProtocolNodes[0];
+    if (!firstRoot) return [];
+    const lvl2 = protocolNodes.filter((n) => n.parentId === firstRoot.id);
+    return lvl2[0] ? [lvl2[0].id] : [];
+  });
   const [currentComplement, setCurrentComplement] = useState<string>('');
   const [currentPairs, setCurrentPairs] = useState<EmocaoFrequenciaPar[]>([]);
   const [pendingEmotionToPick, setPendingEmotionToPick] = useState<string>('');
@@ -241,6 +263,20 @@ export function ProntuarioView({
     }
   };
 
+  const handleRootProtocolSelect = (rootId: string) => {
+    setSelectedRootNodeId(rootId);
+    const lvl2 = getProtocolChildren(rootId);
+    setSelectedChainIds(lvl2[0] ? [lvl2[0].id] : []);
+  };
+
+  const handleChainLevelChange = (depthIdx: number, nodeId: string) => {
+    const next = selectedChainIds.slice(0, depthIdx);
+    if (nodeId) {
+      next.push(nodeId);
+    }
+    setSelectedChainIds(next);
+  };
+
   const handleAddPairToCurrentSituation = () => {
     if (!pendingEmotionToPick) return;
     const freqObj = frequenciesCatalog.find((f) => f.number === pendingFreqNumberToPick);
@@ -269,7 +305,22 @@ export function ProntuarioView({
   };
 
   const handleAddSituacao = () => {
-    if (!currentSituation) return;
+    const activeRootNode =
+      rootProtocolNodes.find((r) => r.id === selectedRootNodeId) || rootProtocolNodes[0];
+
+    let resolvedCategory = currentCategory;
+    let resolvedSituation = currentSituation;
+
+    if (rootProtocolNodes.length > 0 && activeRootNode) {
+      resolvedCategory = activeRootNode.title;
+      const chainTitles = selectedChainIds
+        .map((cid) => protocolNodes.find((n) => n.id === cid)?.title)
+        .filter(Boolean) as string[];
+      resolvedSituation =
+        chainTitles.length > 0 ? chainTitles.join(' ➔ ') : activeRootNode.title;
+    }
+
+    if (!resolvedSituation) return;
 
     // Se o terapeuta selecionou uma emoção no dropdown mas ainda não clicou "+ Vincular", inclui automaticamente!
     let finalPairs = [...currentPairs];
@@ -285,8 +336,8 @@ export function ProntuarioView({
     const emocoesNames = finalPairs.map((p) => p.emocao);
 
     const newSit: ApontamentoSituacao = {
-      categoria: currentCategory,
-      situacao: currentSituation,
+      categoria: resolvedCategory,
+      situacao: resolvedSituation,
       complemento: currentComplement.trim() || undefined,
       emocoes: emocoesNames.length > 0 ? emocoesNames : undefined,
       pares: finalPairs.length > 0 ? finalPairs : undefined,
@@ -359,6 +410,39 @@ export function ProntuarioView({
     if (!target) return;
     setCurrentCategory(target.categoria);
     setCurrentSituation(target.situacao);
+
+    if (rootProtocolNodes.length > 0) {
+      const matchedRoot = rootProtocolNodes.find(
+        (r) =>
+          r.title.toLowerCase() === target.categoria.toLowerCase() ||
+          (target.categoria.toLowerCase().startsWith('medo') &&
+            r.title.toLowerCase().startsWith('medo'))
+      );
+      if (matchedRoot) {
+        setSelectedRootNodeId(matchedRoot.id);
+        const parts = target.situacao.split('➔').map((s) => s.trim());
+        const chain: string[] = [];
+        let currParentId = matchedRoot.id;
+        for (const part of parts) {
+          const match = getProtocolChildren(currParentId).find(
+            (c) => c.title.toLowerCase() === part.toLowerCase()
+          );
+          if (match) {
+            chain.push(match.id);
+            currParentId = match.id;
+          } else {
+            break;
+          }
+        }
+        if (chain.length > 0) {
+          setSelectedChainIds(chain);
+        } else {
+          const lvl2 = getProtocolChildren(matchedRoot.id);
+          setSelectedChainIds(lvl2[0] ? [lvl2[0].id] : []);
+        }
+      }
+    }
+
     setCurrentComplement(target.complemento || '');
     const loadedPairs: EmocaoFrequenciaPar[] =
       target.pares && target.pares.length > 0
@@ -879,57 +963,180 @@ export function ProntuarioView({
                 </p>
               </div>
 
-              <div className="flex items-center gap-1.5 bg-[#FBF9F5] p-1 rounded-xl border border-[#E8E5DF] text-[11px] font-semibold text-[#6B726B]">
-                {getRootCategories().map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => handleCategoryChange(cat)}
-                    className={`px-3 py-1 rounded-lg transition-all ${
-                      currentCategory === cat
-                        ? 'bg-[#1F4D36] text-white shadow-xs'
-                        : 'hover:bg-white text-[#222924]'
-                    }`}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5 bg-[#FBF9F5] p-1 rounded-xl border border-[#E8E5DF] text-[11px] font-semibold text-[#6B726B]">
+                  {rootProtocolNodes.length > 0
+                    ? rootProtocolNodes.map((root) => {
+                        const isActive =
+                          (selectedRootNodeId || rootProtocolNodes[0]?.id) === root.id;
+                        return (
+                          <button
+                            key={root.id}
+                            type="button"
+                            onClick={() => handleRootProtocolSelect(root.id)}
+                            className={`px-3 py-1 rounded-lg transition-all ${
+                              isActive
+                                ? 'bg-[#1F4D36] text-white shadow-xs'
+                                : 'hover:bg-white text-[#222924]'
+                            }`}
+                          >
+                            {root.title}
+                          </button>
+                        );
+                      })
+                    : getRootCategories().map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => handleCategoryChange(cat)}
+                          className={`px-3 py-1 rounded-lg transition-all ${
+                            currentCategory === cat
+                              ? 'bg-[#1F4D36] text-white shadow-xs'
+                              : 'hover:bg-white text-[#222924]'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                </div>
+
+                {isSuperAdmin && (
+                  <Link
+                    href="/admin?tab=protocolos"
+                    target="_blank"
+                    className="px-2.5 py-1.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] hover:bg-white text-[11px] font-semibold text-[#1F4D36] flex items-center gap-1"
+                    title="Gerenciar Categorias e Subcategorias no Admin"
                   >
-                    {cat}
-                  </button>
-                ))}
+                    <Settings className="w-3 h-3" />
+                    Categorias
+                  </Link>
+                )}
               </div>
             </div>
 
             {/* Construtor de Apontamento */}
             <div className="p-4 rounded-xl bg-amber-50/50 border border-amber-200/80 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-[#222924] mb-1">
-                    Situação / Subcategoria ({currentCategory}):
-                  </label>
-                  <select
-                    value={currentSituation}
-                    onChange={(e) => setCurrentSituation(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-amber-300 bg-white text-xs text-[#222924] font-medium"
-                  >
-                    {getSituationsByCategory(currentCategory).map((sit) => (
-                      <option key={sit.title} value={sit.title}>
-                        {sit.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {rootProtocolNodes.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                  {(() => {
+                    const activeRoot =
+                      rootProtocolNodes.find((r) => r.id === selectedRootNodeId) ||
+                      rootProtocolNodes[0];
+                    if (!activeRoot) return null;
 
-                <div className="md:col-span-2">
-                  <label className="block text-[11px] font-bold text-[#222924] mb-1">
-                    Complemento / Especificação (Opcional):
-                  </label>
-                  <input
-                    type="text"
-                    value={currentComplement}
-                    onChange={(e) => setCurrentComplement(e.target.value)}
-                    placeholder="Ex: Pessoa específica, evento da infância, região do corpo, contexto..."
-                    className="w-full p-2.5 rounded-xl border border-amber-300 bg-white text-xs text-[#222924]"
-                  />
+                    const levelsToRender: Array<{
+                      depthIdx: number;
+                      label: string;
+                      options: ProtocolNodeItem[];
+                      selectedValue: string;
+                    }> = [];
+
+                    const lvl2Options = getProtocolChildren(activeRoot.id);
+                    if (lvl2Options.length > 0) {
+                      levelsToRender.push({
+                        depthIdx: 0,
+                        label: `Subcategoria (${activeRoot.title})`,
+                        options: lvl2Options,
+                        selectedValue: selectedChainIds[0] || '',
+                      });
+                    }
+
+                    for (let d = 0; d < 4; d++) {
+                      const chosenId = selectedChainIds[d];
+                      if (!chosenId) break;
+                      const nextOpts = getProtocolChildren(chosenId);
+                      if (nextOpts.length === 0) break;
+                      const chosenNode = protocolNodes.find((n) => n.id === chosenId);
+                      levelsToRender.push({
+                        depthIdx: d + 1,
+                        label: `Subnível (${chosenNode?.title || `Nível ${d + 3}`})`,
+                        options: nextOpts,
+                        selectedValue: selectedChainIds[d + 1] || '',
+                      });
+                    }
+
+                    const complementColSpan =
+                      levelsToRender.length <= 1
+                        ? 'md:col-span-8'
+                        : levelsToRender.length === 2
+                        ? 'md:col-span-4'
+                        : 'md:col-span-12';
+
+                    return (
+                      <>
+                        {levelsToRender.map((lvl) => (
+                          <div key={lvl.depthIdx} className="md:col-span-4">
+                            <label className="block text-[11px] font-bold text-[#222924] mb-1">
+                              {lvl.label}:
+                            </label>
+                            <select
+                              value={lvl.selectedValue}
+                              onChange={(e) =>
+                                handleChainLevelChange(lvl.depthIdx, e.target.value)
+                              }
+                              className="w-full p-2.5 rounded-xl border border-amber-300 bg-white text-xs text-[#222924] font-medium"
+                            >
+                              {lvl.depthIdx > 0 && (
+                                <option value="">— Selecionar subnível (opcional) —</option>
+                              )}
+                              {lvl.options.map((opt) => (
+                                <option key={opt.id} value={opt.id}>
+                                  {opt.title}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+
+                        <div className={complementColSpan}>
+                          <label className="block text-[11px] font-bold text-[#222924] mb-1">
+                            Complemento / Especificação (Opcional):
+                          </label>
+                          <input
+                            type="text"
+                            value={currentComplement}
+                            onChange={(e) => setCurrentComplement(e.target.value)}
+                            placeholder="Ex: Pessoa específica, data/idade, evento da infância, região do corpo..."
+                            className="w-full p-2.5 rounded-xl border border-amber-300 bg-white text-xs text-[#222924]"
+                          />
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
-              </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#222924] mb-1">
+                      Situação / Subcategoria ({currentCategory}):
+                    </label>
+                    <select
+                      value={currentSituation}
+                      onChange={(e) => setCurrentSituation(e.target.value)}
+                      className="w-full p-2.5 rounded-xl border border-amber-300 bg-white text-xs text-[#222924] font-medium"
+                    >
+                      {getSituationsByCategory(currentCategory).map((sit) => (
+                        <option key={sit.title} value={sit.title}>
+                          {sit.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-[11px] font-bold text-[#222924] mb-1">
+                      Complemento / Especificação (Opcional):
+                    </label>
+                    <input
+                      type="text"
+                      value={currentComplement}
+                      onChange={(e) => setCurrentComplement(e.target.value)}
+                      placeholder="Ex: Pessoa específica, evento da infância, região do corpo, contexto..."
+                      className="w-full p-2.5 rounded-xl border border-amber-300 bg-white text-xs text-[#222924]"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Linha de Adição: Emoção + Frequência na frente da emoção */}
               <div className="p-3.5 rounded-xl bg-white border border-amber-200 space-y-3">

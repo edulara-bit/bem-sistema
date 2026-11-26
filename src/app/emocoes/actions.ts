@@ -33,22 +33,44 @@ export async function updateEmotionAction(formData: FormData) {
 export async function createEmotionAction(formData: FormData) {
   await requireSuperAdmin();
 
-  const title = (formData.get('title') as string) || '';
-  const code = (formData.get('code') as string) || '';
+  const title = ((formData.get('title') as string) || '').trim();
+  const code = ((formData.get('code') as string) || '').trim();
   const type = (formData.get('type') as string) || 'Negativa';
-  const description = (formData.get('description') as string) || '';
-  const phrases = (formData.get('phrases') as string) || null;
+  const description = ((formData.get('description') as string) || '').trim();
+  const phrases = ((formData.get('phrases') as string) || '').trim() || null;
 
-  await prisma.emotion.create({
-    data: {
-      tenantId: null,
-      title: title.trim(),
-      code: code.trim(),
+  if (!title) {
+    throw new Error('Informe o título da emoção.');
+  }
+
+  const existing = await prisma.emotion.findFirst({
+    where: {
+      title,
       type,
-      description: description.trim(),
-      phrases: phrases?.trim() || null,
     },
   });
+
+  if (existing) {
+    await prisma.emotion.update({
+      where: { id: existing.id },
+      data: {
+        code,
+        description,
+        phrases,
+      },
+    });
+  } else {
+    await prisma.emotion.create({
+      data: {
+        tenantId: null,
+        title,
+        code,
+        type,
+        description,
+        phrases,
+      },
+    });
+  }
 
   revalidatePath('/emocoes');
   revalidatePath('/admin');

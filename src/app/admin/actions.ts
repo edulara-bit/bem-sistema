@@ -223,3 +223,128 @@ export async function toggleTenantActiveStatusAction(tenantId: string, isActive:
     return { success: false, error: err?.message || 'Erro ao alterar status do consultório.' };
   }
 }
+
+// ================= GESTÃO DE CATEGORIAS E SUBCATEGORIAS DE PROTOCOLOS B.E.M. =================
+
+export async function createProtocolNodeAction(payload: {
+  title: string;
+  parentId?: string | null;
+}) {
+  try {
+    await requireSuperAdmin();
+    const title = (payload.title || '').trim();
+    if (!title) {
+      return { success: false, error: 'Informe o título da categoria ou subcategoria.' };
+    }
+
+    const parentId = payload.parentId || null;
+    const siblingCount = await prisma.protocolNode.count({
+      where: { parentId },
+    });
+
+    const node = await prisma.protocolNode.create({
+      data: {
+        title,
+        parentId,
+        sortOrder: siblingCount + 1,
+      },
+    });
+
+    revalidatePath('/admin');
+    revalidatePath('/pacientes');
+    return { success: true, node };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro ao incluir item.' };
+  }
+}
+
+export async function updateProtocolNodeAction(payload: {
+  id: string;
+  title: string;
+  sortOrder?: number;
+}) {
+  try {
+    await requireSuperAdmin();
+    const title = (payload.title || '').trim();
+    if (!payload.id || !title) {
+      return { success: false, error: 'Informe o novo título.' };
+    }
+
+    await prisma.protocolNode.update({
+      where: { id: payload.id },
+      data: {
+        title,
+        ...(typeof payload.sortOrder === 'number' ? { sortOrder: payload.sortOrder } : {}),
+      },
+    });
+
+    revalidatePath('/admin');
+    revalidatePath('/pacientes');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro ao atualizar item.' };
+  }
+}
+
+export async function deleteProtocolNodeAction(id: string) {
+  try {
+    await requireSuperAdmin();
+    if (!id) return { success: false, error: 'ID inválido.' };
+
+    // Remove recursivamente descendentes (garantia extra além do ON DELETE CASCADE)
+    const allNodes = await prisma.protocolNode.findMany({
+      select: { id: true, parentId: true },
+    });
+    const toDelete = new Set<string>([id]);
+    let added = true;
+    while (added) {
+      added = false;
+      for (const n of allNodes) {
+        if (n.parentId && toDelete.has(n.parentId) && !toDelete.has(n.id)) {
+          toDelete.add(n.id);
+          added = true;
+        }
+      }
+    }
+
+    await prisma.protocolNode.deleteMany({
+      where: { id: { in: Array.from(toDelete) } },
+    });
+
+    revalidatePath('/admin');
+    revalidatePath('/pacientes');
+    return { success: true, deletedCount: toDelete.size };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro ao excluir item.' };
+  }
+}
+
+export async function deduplicateEmotionsNowAction() {
+  try {
+    await requireSuperAdmin();
+    const allEmos = await prisma.emotion.findMany({
+      orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+    });
+    const seen = new Set<string>();
+    const dupIds: string[] = [];
+    for (const emo of allEmos) {
+      const key = `${emo.title.trim().toLowerCase()}|${(emo.type || '').trim().toLowerCase()}`;
+      if (seen.has(key)) {
+        dupIds.push(emo.id);
+      } else {
+        seen.add(key);
+      }
+    }
+
+    if (dupIds.length > 0) {
+      await prisma.emotion.deleteMany({ where: { id: { in: dupIds } } });
+    }
+
+    revalidatePath('/emocoes');
+    revalidatePath('/admin');
+    revalidatePath('/pacientes');
+    return { success: true, removed: dupIds.length };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro ao remover duplicidades.' };
+  }
+}

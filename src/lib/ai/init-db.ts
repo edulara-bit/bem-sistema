@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import crypto from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 
@@ -336,6 +338,113 @@ export async function ensureAiTables(tenantId?: string) {
             )
           `);
 
+          // Tabela global hierárquica de Categorias e Subcategorias de Protocolos B.E.M. (Medos, Relacionamento, Timeline)
+          await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "ProtocolNode" (
+              "id" TEXT NOT NULL PRIMARY KEY,
+              "title" TEXT NOT NULL,
+              "parentId" TEXT,
+              "sortOrder" INTEGER NOT NULL DEFAULT 0,
+              "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              CONSTRAINT "ProtocolNode_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "ProtocolNode" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+            )
+          `);
+          await prisma.$executeRawUnsafe(
+            `CREATE INDEX IF NOT EXISTS "ProtocolNode_parentId_sortOrder_idx" ON "ProtocolNode"("parentId", "sortOrder")`
+          );
+
+          // 1) Auto-seed e deduplicação automática de Emoções (remove registros duplicados preservando edições)
+          const existingEmotions = await prisma.emotion.findMany({
+            orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+          });
+
+          if (existingEmotions.length === 0) {
+            try {
+              const jsonPath = path.join(process.cwd(), 'src/lib/emotions-detailed.json');
+              if (fs.existsSync(jsonPath)) {
+                const raw = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+                const seenSeed = new Set<string>();
+                for (const item of raw) {
+                  const t = String(item.title || '').trim();
+                  const tp = String(item.tipo || 'Negativa').trim();
+                  const k = `${t.toLowerCase()}|${tp.toLowerCase()}`;
+                  if (!t || seenSeed.has(k)) continue;
+                  seenSeed.add(k);
+                  await prisma.emotion.create({
+                    data: {
+                      tenantId: null,
+                      title: t,
+                      description: String(item.description || ''),
+                      code: item.letra ? String(item.letra) : null,
+                      type: tp,
+                      phrases: item.phrases ? String(item.phrases) : null,
+                    },
+                  });
+                }
+              }
+            } catch (e) {
+              console.warn('Aviso ao popular emoções iniciais:', e);
+            }
+          } else {
+            const seenEmotionKeys = new Set<string>();
+            const duplicateEmotionIds: string[] = [];
+            for (const emo of existingEmotions) {
+              const key = `${emo.title.trim().toLowerCase()}|${(emo.type || '').trim().toLowerCase()}`;
+              if (seenEmotionKeys.has(key)) {
+                duplicateEmotionIds.push(emo.id);
+              } else {
+                seenEmotionKeys.add(key);
+              }
+            }
+            if (duplicateEmotionIds.length > 0) {
+              await prisma.emotion.deleteMany({
+                where: { id: { in: duplicateEmotionIds } },
+              });
+            }
+          }
+
+          // 2) Auto-seed e deduplicação automática de Frequências Vibracionais (1 a 9)
+          const existingFreqs = await prisma.frequency.findMany({
+            orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+          });
+          if (existingFreqs.length === 0) {
+            for (let n = 1; n <= 9; n++) {
+              await prisma.frequency.create({
+                data: {
+                  number: String(n),
+                  title: `Frequência ${n}`,
+                  description: `Expressão vibracional fundamental ${n} do protocolo B.E.M. (Edite o título e a descrição conforme sua referência oficial).`,
+                },
+              });
+            }
+          } else {
+            const seenFreqNums = new Set<string>();
+            const dupFreqIds: string[] = [];
+            for (const fq of existingFreqs) {
+              const k = fq.number.trim().toLowerCase();
+              if (seenFreqNums.has(k)) {
+                dupFreqIds.push(fq.id);
+              } else {
+                seenFreqNums.add(k);
+              }
+            }
+            if (dupFreqIds.length > 0) {
+              await prisma.frequency.deleteMany({
+                where: { id: { in: dupFreqIds } },
+              });
+            }
+          }
+
+          // 3) Auto-seed inicial da árvore de Protocolos B.E.M. (Medos, Relacionamento, Timeline e subcategorias)
+          const nodeCountRows = await prisma.$queryRawUnsafe<Array<{ cnt: number | bigint }>>(
+            `SELECT COUNT(*) as cnt FROM "ProtocolNode"`
+          );
+          const nodeCount = Number(nodeCountRows[0]?.cnt || 0);
+          if (nodeCount === 0) {
+            await seedInitialProtocolNodes();
+          }
+
           // Valida que as novas colunas de Tenant realmente estão acessíveis
           await prisma.$queryRawUnsafe(`SELECT "aiApiKey", "aiDefaultDeliveryMode" FROM "Tenant" LIMIT 1`);
           initializedInProcess = true;
@@ -396,5 +505,110 @@ export async function ensureTenantDefaults(tenantId: string) {
         },
       });
     }
+  }
+}
+
+async function seedInitialProtocolNodes() {
+  try {
+    const jsonPath = path.join(process.cwd(), 'src/lib/protocols-data.json');
+    if (fs.existsSync(jsonPath)) {
+      const parsed = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+      const rawProtocols: Array<{ id: number; title: string; parentId: number }> =
+        parsed.protocols || [];
+
+      // Ordena as raízes na ordem clínica preferida: Medos, Relacionamento, Timeline
+      const rootOrder: Record<string, number> = {
+        Medo: 1,
+        Medos: 1,
+        Relacionamento: 2,
+        Timeline: 3,
+      };
+
+      const legacyToCuid = new Map<number, string>();
+      const remaining = [...rawProtocols];
+      let safety = 0;
+
+      while (remaining.length > 0 && safety < 10) {
+        safety++;
+        const deferred: typeof rawProtocols = [];
+        let sortCounter = 0;
+
+        for (const item of remaining) {
+          if (item.parentId === 0) {
+            const normalizedTitle = item.title === 'Medo' ? 'Medos' : item.title;
+            const created = await prisma.protocolNode.create({
+              data: {
+                title: normalizedTitle,
+                parentId: null,
+                sortOrder: rootOrder[item.title] || ++sortCounter,
+              },
+            });
+            legacyToCuid.set(item.id, created.id);
+          } else if (legacyToCuid.has(item.parentId)) {
+            sortCounter++;
+            const created = await prisma.protocolNode.create({
+              data: {
+                title: item.title,
+                parentId: legacyToCuid.get(item.parentId)!,
+                sortOrder: sortCounter,
+              },
+            });
+            legacyToCuid.set(item.id, created.id);
+          } else {
+            deferred.push(item);
+          }
+        }
+        remaining.length = 0;
+        remaining.push(...deferred);
+      }
+
+      // Garante que "Rejeição" também exista dentro de Medos (usado nas sessões atuais)
+      const medosRootId = legacyToCuid.get(2);
+      if (medosRootId) {
+        const hasRejeicao = await prisma.protocolNode.findFirst({
+          where: { parentId: medosRootId, title: 'Rejeição' },
+        });
+        if (!hasRejeicao) {
+          await prisma.protocolNode.create({
+            data: {
+              title: 'Rejeição',
+              parentId: medosRootId,
+              sortOrder: 0,
+            },
+          });
+        }
+      }
+      return;
+    }
+  } catch (err) {
+    console.warn('Aviso ao popular ProtocolNode a partir de protocols-data.json:', err);
+  }
+
+  // Fallback caso o JSON não esteja acessível
+  const medos = await prisma.protocolNode.create({
+    data: { title: 'Medos', parentId: null, sortOrder: 1 },
+  });
+  for (const [idx, t] of ['Abandono', 'Rejeição', 'Crítica', 'Saúde', 'Financeiro', 'Fracasso', 'Sucesso'].entries()) {
+    await prisma.protocolNode.create({
+      data: { title: t, parentId: medos.id, sortOrder: idx + 1 },
+    });
+  }
+
+  const rel = await prisma.protocolNode.create({
+    data: { title: 'Relacionamento', parentId: null, sortOrder: 2 },
+  });
+  for (const [idx, t] of ['Família', 'Amoroso', 'Trabalho', 'Consigo', 'Dinheiro', 'Tempo', 'Deus'].entries()) {
+    await prisma.protocolNode.create({
+      data: { title: t, parentId: rel.id, sortOrder: idx + 1 },
+    });
+  }
+
+  const tl = await prisma.protocolNode.create({
+    data: { title: 'Timeline', parentId: null, sortOrder: 3 },
+  });
+  for (const [idx, t] of ['Passado', 'Presente', 'Futuro'].entries()) {
+    await prisma.protocolNode.create({
+      data: { title: t, parentId: tl.id, sortOrder: idx + 1 },
+    });
   }
 }

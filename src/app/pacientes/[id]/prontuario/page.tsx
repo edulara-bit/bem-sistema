@@ -1,5 +1,3 @@
-import fs from 'fs';
-import path from 'path';
 import { notFound } from 'next/navigation';
 import { getTenantDb, prisma } from '@/lib/prisma';
 import { getCurrentTenant } from '@/lib/current-tenant';
@@ -8,18 +6,6 @@ import { decryptText } from '@/lib/crypto';
 import { ensureAiTables } from '@/lib/ai/init-db';
 import { listStructuredMemories } from '@/lib/ai/memory';
 import { ProntuarioView } from './ProntuarioView';
-
-const STARTER_FREQUENCIES = [
-  { number: '1', title: 'Frequência 1', description: 'Expressão vibracional 1 do protocolo B.E.M.' },
-  { number: '2', title: 'Frequência 2', description: 'Expressão vibracional 2 do protocolo B.E.M.' },
-  { number: '3', title: 'Frequência 3', description: 'Expressão vibracional 3 do protocolo B.E.M.' },
-  { number: '4', title: 'Frequência 4', description: 'Expressão vibracional 4 do protocolo B.E.M.' },
-  { number: '5', title: 'Frequência 5', description: 'Expressão vibracional 5 do protocolo B.E.M.' },
-  { number: '6', title: 'Frequência 6', description: 'Expressão vibracional 6 do protocolo B.E.M.' },
-  { number: '7', title: 'Frequência 7', description: 'Expressão vibracional 7 do protocolo B.E.M.' },
-  { number: '8', title: 'Frequência 8', description: 'Expressão vibracional 8 do protocolo B.E.M.' },
-  { number: '9', title: 'Frequência 9', description: 'Expressão vibracional 9 do protocolo B.E.M.' },
-];
 
 export default async function ProntuarioPage({
   params,
@@ -43,60 +29,54 @@ export default async function ProntuarioPage({
     notFound();
   }
 
-  let emotions = await prisma.emotion.findMany({
-    orderBy: [{ title: 'asc' }],
-  });
+  const [
+    emotions,
+    frequencies,
+    protocolNodes,
+    records,
+    patientMemories,
+    patientPrograms,
+    anamnesisQuestions,
+    freshTenant,
+    userCtx,
+  ] = await Promise.all([
+    prisma.emotion.findMany({
+      orderBy: [{ title: 'asc' }],
+    }),
+    prisma.frequency.findMany(),
+    prisma.protocolNode.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { title: 'asc' }],
+    }),
+    prisma.clinicalRecord.findMany({
+      where: { tenantId: tenant.id, patientId: patient.id },
+      include: { appointment: true },
+      orderBy: { sessionDate: 'desc' },
+    }),
+    listStructuredMemories({
+      tenantId: tenant.id,
+      scope: 'atendimento',
+      patientId: patient.id,
+      limit: 40,
+    }),
+    prisma.patientProgram.findMany({
+      where: { tenantId: tenant.id, patientId: patient.id },
+      orderBy: { updatedAt: 'desc' },
+      take: 10,
+    }),
+    prisma.anamnesisQuestion.findMany({
+      where: { tenantId: tenant.id, active: true },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    }),
+    prisma.tenant.findUnique({
+      where: { id: tenant.id },
+      select: { aiDefaultDeliveryMode: true, aiAgentsEnabled: true },
+    }),
+    getCurrentUserContext(),
+  ]);
 
-  if (emotions.length === 0) {
-    try {
-      const jsonPath = path.join(process.cwd(), 'src/lib/emotions-detailed.json');
-      if (fs.existsSync(jsonPath)) {
-        emotions = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-      }
-    } catch (e) {
-      console.warn('Erro ao ler emotions-detailed.json:', e);
-    }
-  }
-
-  let frequencies = await prisma.frequency.findMany();
-  if (frequencies.length === 0) {
-    for (const f of STARTER_FREQUENCIES) {
-      await prisma.frequency.create({ data: f });
-    }
-    frequencies = await prisma.frequency.findMany();
-  }
   frequencies.sort((a, b) =>
     a.number.localeCompare(b.number, 'pt-BR', { numeric: true })
   );
-
-  const [records, patientMemories, patientPrograms, anamnesisQuestions, freshTenant, userCtx] =
-    await Promise.all([
-      prisma.clinicalRecord.findMany({
-        where: { tenantId: tenant.id, patientId: patient.id },
-        include: { appointment: true },
-        orderBy: { sessionDate: 'desc' },
-      }),
-      listStructuredMemories({
-        tenantId: tenant.id,
-        scope: 'atendimento',
-        patientId: patient.id,
-        limit: 40,
-      }),
-      prisma.patientProgram.findMany({
-        where: { tenantId: tenant.id, patientId: patient.id },
-        orderBy: { updatedAt: 'desc' },
-        take: 10,
-      }),
-      prisma.anamnesisQuestion.findMany({
-        where: { tenantId: tenant.id, active: true },
-        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-      }),
-      prisma.tenant.findUnique({
-        where: { id: tenant.id },
-        select: { aiDefaultDeliveryMode: true, aiAgentsEnabled: true },
-      }),
-      getCurrentUserContext(),
-    ]);
 
   let initialAnamnesisAnswers: Record<string, string> = {};
   if ((patient as any).anamnesisEnc) {
@@ -194,6 +174,12 @@ export default async function ProntuarioPage({
         number: f.number,
         title: f.title,
         description: f.description,
+      }))}
+      protocolNodes={protocolNodes.map((n) => ({
+        id: n.id,
+        title: n.title,
+        parentId: n.parentId,
+        sortOrder: n.sortOrder,
       }))}
       anamnesisQuestions={anamnesisQuestions.map((q) => ({
         id: q.id,
