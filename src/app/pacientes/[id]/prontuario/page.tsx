@@ -143,6 +143,7 @@ export default async function ProntuarioPage({
 
     return {
       id: r.id,
+      appointmentId: r.appointmentId || undefined,
       sessionDate: new Date(r.sessionDate).toLocaleDateString('pt-BR', {
         timeZone: 'America/Sao_Paulo',
         day: '2-digit',

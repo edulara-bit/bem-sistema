@@ -26,6 +26,8 @@ import {
   BookmarkPlus,
   Trash2,
   Settings,
+  Pencil,
+  RotateCcw,
 } from 'lucide-react';
 import { saveClinicalRecordAction, savePatientAnamnesisAction } from './actions';
 import { getRootCategories, getSituationsByCategory } from '@/lib/protocols';
@@ -48,6 +50,7 @@ export interface ApontamentoSituacao {
 
 interface HistoricalRecord {
   id: string;
+  appointmentId?: string;
   sessionDate: string;
   rawNotes?: string;
   soap: { subjective: string; objective: string; assessment: string; plan: string };
@@ -130,17 +133,32 @@ export function ProntuarioView({
 }) {
   const router = useRouter();
 
+  // Se entrou via ?appointmentId= de uma consulta já apontada, carrega-a automaticamente em modo de edição!
+  const initialLinkedRecord = appointmentId
+    ? history.find((h) => h.appointmentId === appointmentId) || null
+    : null;
+
+  const [editingRecord, setEditingRecord] = useState<HistoricalRecord | null>(
+    initialLinkedRecord
+  );
+
   const [activeTab, setActiveTab] = useState<
     'historico' | 'nova_evolucao' | 'anamnese' | 'ia_bem'
   >(appointmentId || history.length === 0 ? 'nova_evolucao' : 'historico');
 
-  const [rawNotes, setRawNotes] = useState('');
-  const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
+  const [rawNotes, setRawNotes] = useState(initialLinkedRecord?.rawNotes || '');
+  const [selectedEmotions, setSelectedEmotions] = useState<string[]>(
+    initialLinkedRecord?.emocoesTrabalhadas || []
+  );
   const [emotionSearch, setEmotionSearch] = useState('');
   const [emotionFilter, setEmotionFilter] = useState<'all' | 'Negativa' | 'Positiva'>('all');
 
   // Situações & Protocolos Bioenergéticos com par (Emoção + Frequência na frente da emoção)
-  const [situacoesList, setSituacoesList] = useState<ApontamentoSituacao[]>([]);
+  const [situacoesList, setSituacoesList] = useState<ApontamentoSituacao[]>(
+    initialLinkedRecord?.situacoes
+      ? JSON.parse(JSON.stringify(initialLinkedRecord.situacoes))
+      : []
+  );
   const [currentCategory, setCurrentCategory] = useState<string>('Medos');
   const [currentSituation, setCurrentSituation] = useState<string>('Abandono');
   const [currentComplement, setCurrentComplement] = useState<string>('');
@@ -169,6 +187,8 @@ export function ProntuarioView({
   const storageEmotionsKey = `bem_draft_emotions_${patient.id}`;
 
   useEffect(() => {
+    // Não sobrescreve os dados carregados quando estiver editando uma sessão já existente
+    if (editingRecord) return;
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
@@ -182,7 +202,36 @@ export function ProntuarioView({
     } catch {
       // ignore
     }
-  }, [storageKey, storageEmotionsKey]);
+  }, [storageKey, storageEmotionsKey, editingRecord]);
+
+  const handleStartEditingRecord = (record: HistoricalRecord) => {
+    setEditingRecord(record);
+    setRawNotes(record.rawNotes || '');
+    setSelectedEmotions(record.emocoesTrabalhadas ? [...record.emocoesTrabalhadas] : []);
+    setSituacoesList(
+      record.situacoes ? JSON.parse(JSON.stringify(record.situacoes)) : []
+    );
+    setCurrentComplement('');
+    setCurrentPairs([]);
+    setPendingEmotionToPick('');
+    setLastSavedLocal(null);
+    setActiveTab('nova_evolucao');
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleCancelEditingRecord = (goToNewBlank = false) => {
+    setEditingRecord(null);
+    setRawNotes('');
+    setSelectedEmotions([]);
+    setSituacoesList([]);
+    setCurrentComplement('');
+    setCurrentPairs([]);
+    setPendingEmotionToPick('');
+    setLastSavedLocal(null);
+    setActiveTab(goToNewBlank ? 'nova_evolucao' : 'historico');
+  };
 
   const handleCategoryChange = (cat: string) => {
     setCurrentCategory(cat);
@@ -287,8 +336,41 @@ export function ProntuarioView({
     setSituacoesList(situacoesList.filter((_, i) => i !== index));
   };
 
+  const handleRemoveSavedSituacaoPair = (sitIdx: number, pairIdx: number) => {
+    setSituacoesList((prev) =>
+      prev.map((sit, sIdx) => {
+        if (sIdx !== sitIdx) return sit;
+        const basePares: EmocaoFrequenciaPar[] =
+          sit.pares && sit.pares.length > 0
+            ? sit.pares
+            : (sit.emocoes || []).map((e) => ({ emocao: e }));
+        const nextPares = basePares.filter((_, pIdx) => pIdx !== pairIdx);
+        return {
+          ...sit,
+          pares: nextPares,
+          emocoes: nextPares.map((p) => p.emocao),
+        };
+      })
+    );
+  };
+
+  const handleEditSituacaoInBuilder = (index: number) => {
+    const target = situacoesList[index];
+    if (!target) return;
+    setCurrentCategory(target.categoria);
+    setCurrentSituation(target.situacao);
+    setCurrentComplement(target.complemento || '');
+    const loadedPairs: EmocaoFrequenciaPar[] =
+      target.pares && target.pares.length > 0
+        ? [...target.pares]
+        : (target.emocoes || []).map((e) => ({ emocao: e }));
+    setCurrentPairs(loadedPairs);
+    setSituacoesList(situacoesList.filter((_, i) => i !== index));
+  };
+
   const handleNotesChange = (text: string) => {
     setRawNotes(text);
+    if (editingRecord) return;
     try {
       localStorage.setItem(storageKey, text);
       const now = new Date().toLocaleTimeString('pt-BR', {
@@ -307,6 +389,7 @@ export function ProntuarioView({
       ? selectedEmotions.filter((e) => e !== title)
       : [...selectedEmotions, title];
     setSelectedEmotions(updated);
+    if (editingRecord) return;
     try {
       localStorage.setItem(storageEmotionsKey, JSON.stringify(updated));
     } catch {
@@ -342,15 +425,19 @@ export function ProntuarioView({
     setIsSaving(true);
     try {
       await saveClinicalRecordAction({
+        recordId: editingRecord?.id,
         patientId: patient.id,
-        appointmentId,
+        appointmentId: editingRecord?.appointmentId || appointmentId,
         rawNotes,
         isLocked,
         emocoesTrabalhadas: selectedEmotions,
         situacoes: situacoesList,
       });
-      localStorage.removeItem(storageKey);
-      localStorage.removeItem(storageEmotionsKey);
+      if (!editingRecord) {
+        localStorage.removeItem(storageKey);
+        localStorage.removeItem(storageEmotionsKey);
+      }
+      setEditingRecord(null);
       setLastSavedLocal(null);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 4000);
@@ -459,12 +546,18 @@ export function ProntuarioView({
           onClick={() => setActiveTab('nova_evolucao')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
             activeTab === 'nova_evolucao'
-              ? 'bg-[#1F4D36] text-white shadow-sm'
+              ? editingRecord
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'bg-[#1F4D36] text-white shadow-sm'
+              : editingRecord
+              ? 'bg-amber-50 text-amber-800 border border-amber-300'
               : 'text-[#6B726B] hover:text-[#222924] hover:bg-white'
           }`}
         >
-          <Waves className="w-4 h-4" />
-          Registrar Sessão B.E.M.
+          {editingRecord ? <Pencil className="w-4 h-4" /> : <Waves className="w-4 h-4" />}
+          {editingRecord
+            ? `Editando Sessão (${editingRecord.sessionDate.split(',')[0]})`
+            : 'Registrar Sessão B.E.M.'}
         </button>
 
         <button
@@ -523,7 +616,7 @@ export function ProntuarioView({
 
             <button
               type="button"
-              onClick={() => setActiveTab('nova_evolucao')}
+              onClick={() => handleCancelEditingRecord(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1F4D36] text-white text-xs font-semibold hover:bg-[#183C2A] shadow-xs"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -586,11 +679,26 @@ export function ProntuarioView({
                         </div>
                       </div>
 
-                      {record.isLocked && (
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 flex items-center gap-1 self-start sm:self-center">
-                          <Lock className="w-3 h-3" /> Concluída
-                        </span>
-                      )}
+                      <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
+                        {record.isLocked ? (
+                          <span className="text-[10px] font-semibold px-2 py-1 rounded-md bg-gray-100 text-gray-700 flex items-center gap-1">
+                            <Lock className="w-3 h-3" /> Concluída
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold px-2 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+                            Em Aberto
+                          </span>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditingRecord(record)}
+                          className="px-3 py-1.5 rounded-xl border border-[#1F4D36]/30 bg-[#EBF3ED] hover:bg-[#1F4D36] text-[#1F4D36] hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          Editar / Complementar Sessão
+                        </button>
+                      </div>
                     </div>
 
                     {/* Situações & Protocolos Bioenergéticos com Emoção + Frequência */}
@@ -721,10 +829,43 @@ export function ProntuarioView({
       )}
 
       {/* ========================================================= */}
-      {/* ABA 2: REGISTRAR SESSÃO BIOENERGÉTICA B.E.M. (SEM SOAP)   */}
+      {/* ABA 2: REGISTRAR OU EDITAR SESSÃO BIOENERGÉTICA B.E.M.    */}
       {/* ========================================================= */}
       {activeTab === 'nova_evolucao' && (
         <div className="space-y-6">
+          {editingRecord && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-300 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                  <Pencil className="w-4 h-4 text-amber-700" />
+                  Editando Sessão Realizada em {editingRecord.sessionDate}
+                </div>
+                <p className="text-xs text-amber-800">
+                  Adicione novos protocolos/situações, complemente emoções e frequências ou ajuste as observações abaixo. Ao salvar, esta sessão será atualizada sem criar duplicidade.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleCancelEditingRecord(true)}
+                  className="px-3 py-1.5 rounded-xl border border-amber-300 bg-white hover:bg-amber-100 text-amber-900 text-xs font-semibold flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Nova Sessão em Branco
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCancelEditingRecord(false)}
+                  className="px-3 py-1.5 rounded-xl bg-white border border-[#E8E5DF] hover:bg-gray-50 text-[#222924] text-xs font-semibold flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Voltar ao Histórico
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* 1. SITUAÇÕES & PROTOCOLOS BIOENERGÉTICOS COM EMOÇÃO + FREQUÊNCIA NA FRENTE */}
           <div className="bg-white rounded-2xl border border-[#E8E5DF] shadow-sm p-5 sm:p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E8E5DF] pb-3">
@@ -969,27 +1110,49 @@ export function ProntuarioView({
                                         Freq. {fq.number} — {fq.title}
                                       </option>
                                     ))}
-                                  </select>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                                    </select>
+                                    <button
+                                      type="button"
+                                      title="Remover esta emoção deste protocolo"
+                                      onClick={() =>
+                                        handleRemoveSavedSituacaoPair(sitIdx, pIdx)
+                                      }
+                                      className="text-gray-400 hover:text-rose-600 p-0.5"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
 
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSituacao(sitIdx)}
-                          className="text-gray-400 hover:text-rose-600 p-1"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    );
-                  })}
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleEditSituacaoInBuilder(sitIdx)}
+                              title="Carregar no editor acima para incluir mais emoções ou ajustar complemento"
+                              className="px-2.5 py-1 rounded-lg border border-amber-300 bg-white hover:bg-amber-50 text-amber-900 text-[11px] font-bold flex items-center gap-1"
+                            >
+                              <Pencil className="w-3 h-3" />
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSituacao(sitIdx)}
+                              title="Remover protocolo da sessão"
+                              className="text-gray-400 hover:text-rose-600 p-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
           {/* 2. APONTAMENTOS LIVRES & BOTÕES DE GRAVAÇÃO DA SESSÃO */}
           <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E8E5DF] shadow-sm space-y-4">
@@ -1003,7 +1166,9 @@ export function ProntuarioView({
                   Anote percepções corporais, respostas ao desbloqueio ou observações livres para o histórico e para a IA Pós-Sessão.
                 </p>
               </div>
-              <span className="text-[11px] text-[#6B726B]">Auto-salvo localmente</span>
+              <span className="text-[11px] text-[#6B726B]">
+                {editingRecord ? 'Modo de edição da sessão' : 'Auto-salvo localmente'}
+              </span>
             </div>
 
             <textarea
@@ -1015,6 +1180,17 @@ export function ProntuarioView({
             />
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-1">
+              {editingRecord && (
+                <button
+                  type="button"
+                  onClick={() => handleCancelEditingRecord(false)}
+                  disabled={isSaving}
+                  className="py-2.5 px-4 rounded-xl border border-[#E8E5DF] bg-white text-[#6B726B] text-xs font-semibold hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancelar Edição
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => handleSaveRecord(false)}
@@ -1022,7 +1198,7 @@ export function ProntuarioView({
                 className="py-2.5 px-5 rounded-xl border border-[#E8E5DF] bg-white text-[#222924] text-xs font-semibold hover:bg-[#FBF9F5] disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 <Save className="w-4 h-4 text-gray-500" />
-                Salvar em Aberto
+                {editingRecord ? 'Salvar e Manter em Aberto' : 'Salvar em Aberto'}
               </button>
 
               <button
@@ -1031,8 +1207,12 @@ export function ProntuarioView({
                 disabled={isSaving}
                 className="py-2.5 px-6 rounded-xl bg-[#1F4D36] text-white text-xs font-bold hover:bg-[#183C2A] disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
               >
-                <Lock className="w-4 h-4" />
-                {isSaving ? 'Gravando...' : 'Concluir & Gravar na Linha do Tempo'}
+                {editingRecord ? <Save className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                {isSaving
+                  ? 'Gravando...'
+                  : editingRecord
+                  ? 'Salvar Alterações da Sessão'
+                  : 'Concluir & Gravar na Linha do Tempo'}
               </button>
             </div>
           </div>

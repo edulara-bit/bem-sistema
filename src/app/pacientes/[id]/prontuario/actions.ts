@@ -24,6 +24,7 @@ export async function savePatientAnamnesisAction(payload: {
 }
 
 export async function saveClinicalRecordAction({
+  recordId,
   patientId,
   appointmentId,
   rawNotes,
@@ -31,6 +32,7 @@ export async function saveClinicalRecordAction({
   emocoesTrabalhadas = [],
   situacoes = [],
 }: {
+  recordId?: string;
   patientId: string;
   appointmentId?: string;
   rawNotes: string;
@@ -64,26 +66,54 @@ export async function saveClinicalRecordAction({
     situacoes: situacoes,
   };
 
-  const record = await db.records.create({
-    patientId,
-    appointmentId: appointmentId || null,
-    sessionDate: new Date(),
-    rawDraftEnc,
-    soapEnc,
-    aiAssisted: false,
-    isLocked,
-    emocoesTrabalhadas: JSON.stringify(payloadToStore),
-  });
-
-  if (appointmentId) {
-    await db.appointments.updateStatus(appointmentId, 'completed');
-  }
+  // Verifica se estamos editando uma sessão já existente (por recordId explícito ou por appointmentId já apontado)
+  const existingRecord = recordId
+    ? await prisma.clinicalRecord.findFirst({
+        where: { id: recordId, tenantId: tenant.id, patientId },
+      })
+    : appointmentId
+    ? await prisma.clinicalRecord.findFirst({
+        where: { appointmentId, tenantId: tenant.id, patientId },
+      })
+    : null;
 
   const patient = await db.patients.findUnique(patientId);
-  if (patient && (patient.sessionTypePreference === 'package' || patient.packageId)) {
-    await db.patients.update(patientId, {
-      packageUsedSessions: (patient.packageUsedSessions || 0) + 1,
+
+  let savedRecordId: string;
+  const isEditingExisting = Boolean(existingRecord);
+
+  if (existingRecord) {
+    const updated = await prisma.clinicalRecord.update({
+      where: { id: existingRecord.id },
+      data: {
+        rawDraftEnc,
+        isLocked,
+        emocoesTrabalhadas: JSON.stringify(payloadToStore),
+      },
     });
+    savedRecordId = updated.id;
+  } else {
+    const created = await db.records.create({
+      patientId,
+      appointmentId: appointmentId || null,
+      sessionDate: new Date(),
+      rawDraftEnc,
+      soapEnc,
+      aiAssisted: false,
+      isLocked,
+      emocoesTrabalhadas: JSON.stringify(payloadToStore),
+    });
+    savedRecordId = created.id;
+
+    if (appointmentId) {
+      await db.appointments.updateStatus(appointmentId, 'completed');
+    }
+
+    if (patient && (patient.sessionTypePreference === 'package' || patient.packageId)) {
+      await db.patients.update(patientId, {
+        packageUsedSessions: (patient.packageUsedSessions || 0) + 1,
+      });
+    }
   }
 
   revalidatePath(`/pacientes/${patientId}/prontuario`);
@@ -93,19 +123,23 @@ export async function saveClinicalRecordAction({
 
   try {
     const { fireN8nWebhook } = await import('@/lib/ai/orchestrator');
-    await fireN8nWebhook(tenant.id, 'session.completed', {
-      recordId: record.id,
-      patientId,
-      patientName: patient?.name || null,
-      appointmentId: appointmentId || null,
-      emocoesTrabalhadas,
-      situacoes,
-    });
+    await fireN8nWebhook(
+      tenant.id,
+      isEditingExisting ? 'session.updated' : 'session.completed',
+      {
+        recordId: savedRecordId,
+        patientId,
+        patientName: patient?.name || null,
+        appointmentId: existingRecord?.appointmentId || appointmentId || null,
+        emocoesTrabalhadas,
+        situacoes,
+      }
+    );
   } catch {
     // Não bloqueia salvamento clínico
   }
 
-  return { success: true, recordId: record.id };
+  return { success: true, recordId: savedRecordId, updated: isEditingExisting };
 }
 
 export async function compilePatientFeedbackAction(payload: {
