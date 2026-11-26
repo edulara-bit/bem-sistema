@@ -27,6 +27,18 @@ export async function authenticateAiApiRequest(request: NextRequest) {
     return { error: 'Chave X-BEM-API-Key inválida.', status: 403 as const, tenant: null };
   }
 
+  if (!tenant.isActive) {
+    return { error: 'Consultório inativo.', status: 403 as const, tenant: null };
+  }
+
+  if (!tenant.aiAgentsEnabled && tenant.slug !== 'edulara') {
+    return {
+      error: 'Acesso aos Agentes B.E.M. não habilitado para este consultório.',
+      status: 403 as const,
+      tenant: null,
+    };
+  }
+
   await ensureAiTables(tenant.id);
   return { error: null, status: 200 as const, tenant };
 }

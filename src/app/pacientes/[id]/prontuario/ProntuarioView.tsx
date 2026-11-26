@@ -81,6 +81,8 @@ export function ProntuarioView({
   patientMemories = [],
   patientPrograms = [],
   defaultDeliveryMode = 'review',
+  aiAgentsEnabled = false,
+  isSuperAdmin = false,
 }: {
   patient: { 
     id: string; 
@@ -106,6 +108,8 @@ export function ProntuarioView({
     steps: any[];
   }>;
   defaultDeliveryMode?: 'review' | 'auto';
+  aiAgentsEnabled?: boolean;
+  isSuperAdmin?: boolean;
 }) {
   // Aba ativa: se veio da agenda para atendimento imediato abre em 'nova_evolucao', senão mostra o 'historico'
   const [activeTab, setActiveTab] = useState<'historico' | 'nova_evolucao' | 'ia_bem'>(
@@ -368,18 +372,20 @@ export function ProntuarioView({
           Registrar Nova Evolução Clínica SOAP
         </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('ia_bem')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-            activeTab === 'ia_bem'
-              ? 'bg-[#1F4D36] text-white shadow-sm'
-              : 'text-[#1F4D36] bg-[#EBF3ED]/70 hover:bg-[#EBF3ED]'
-          }`}
-        >
-          <Sparkles className="w-4 h-4" />
-          Pós-Sessão, Jornadas & Memória IA ({patientMemories.length})
-        </button>
+        {aiAgentsEnabled && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('ia_bem')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+              activeTab === 'ia_bem'
+                ? 'bg-[#1F4D36] text-white shadow-sm'
+                : 'text-[#1F4D36] bg-[#EBF3ED]/70 hover:bg-[#EBF3ED]'
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            Pós-Sessão, Jornadas & Memória IA ({patientMemories.length})
+          </button>
+        )}
 
         <Link
           href="/emocoes"
@@ -1095,7 +1101,7 @@ export function ProntuarioView({
       {/* ========================================================= */}
       {/* ABA 3: PÓS-SESSÃO, JORNADAS CONTÍNUAS & MEMÓRIA IA B.E.M. */}
       {/* ========================================================= */}
-      {activeTab === 'ia_bem' && (
+      {activeTab === 'ia_bem' && aiAgentsEnabled && (
         <PatientAiPanel
           patient={{ id: patient.id, name: patient.name }}
           appointmentId={appointmentId}
@@ -1170,7 +1176,7 @@ export function ProntuarioView({
                 className="text-[#1F4D36] font-semibold hover:underline flex items-center gap-1"
               >
                 <BookOpen className="w-3.5 h-3.5" />
-                Editar no Catálogo de Emoções
+                {isSuperAdmin ? 'Editar no Catálogo de Emoções' : 'Abrir Catálogo de Emoções'}
               </Link>
               <button
                 type="button"

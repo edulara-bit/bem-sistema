@@ -27,6 +27,18 @@ export default async function ReservarPatientPage({
   }
 
   const tenant = patient.tenant;
+  if (!tenant.isActive) {
+    return (
+      <div className="min-h-screen bg-[#FBF9F5] flex items-center justify-center p-6 text-center">
+        <div className="max-w-md bg-white p-8 rounded-3xl border border-[#E8E5DF] shadow-sm space-y-2">
+          <h1 className="text-lg font-bold text-[#222924]">Agenda Temporariamente Indisponível</h1>
+          <p className="text-xs text-[#6B726B]">
+            Entre em contato diretamente com o seu terapeuta para informações sobre horários.
+          </p>
+        </div>
+      </div>
+    );
+  }
   const availableDays = await getPatientBookingAvailability(tenant.id);
 
   return (
@@ -41,6 +53,7 @@ export default async function ReservarPatientPage({
         id: tenant.id,
         name: tenant.name,
         slug: tenant.slug,
+        logoUrl: tenant.logoUrl || null,
         headline: tenant.headline,
         whatsapp: tenant.whatsapp,
         consultationPrice: tenant.consultationPrice,

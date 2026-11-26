@@ -30,6 +30,7 @@ interface ReservarViewProps {
     id: string;
     name: string;
     slug: string;
+    logoUrl?: string | null;
     headline?: string | null;
     whatsapp?: string | null;
     consultationPrice: number;
@@ -201,17 +202,26 @@ export function ReservarView({ patient, therapist, availableDays }: ReservarView
     <div className="min-h-screen bg-[#FBF9F5] py-8 sm:py-12 px-4 sm:px-6 max-w-4xl mx-auto space-y-6">
       {/* Top Header com Terapeuta e Paciente */}
       <div className="bg-white p-6 rounded-3xl border border-[#E8E5DF] shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EBF3ED] text-[#1F4D36] text-xs font-semibold mb-2">
-            <Sparkles className="w-3.5 h-3.5" />
-            Agendamento de Sessão Online
+        <div className="flex items-center gap-4">
+          {therapist.logoUrl && (
+            <img
+              src={therapist.logoUrl}
+              alt={therapist.name}
+              className="h-14 w-auto max-w-[140px] rounded-2xl object-contain border border-[#E8E5DF] bg-white p-1.5 shadow-xs shrink-0"
+            />
+          )}
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EBF3ED] text-[#1F4D36] text-xs font-semibold mb-2">
+              <Sparkles className="w-3.5 h-3.5" />
+              Agendamento de Sessão Online
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-[#222924] tracking-tight">
+              Olá, {patient.name} 👋
+            </h1>
+            <p className="text-xs sm:text-sm text-[#6B726B] mt-0.5">
+              Selecione o melhor dia e horário para seu atendimento com <strong className="text-[#1F4D36]">{therapist.name}</strong>.
+            </p>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#222924] tracking-tight">
-            Olá, {patient.name} 👋
-          </h1>
-          <p className="text-xs sm:text-sm text-[#6B726B] mt-0.5">
-            Selecione o melhor dia e horário para seu atendimento com <strong className="text-[#1F4D36]">{therapist.name}</strong>.
-          </p>
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-center bg-[#FBF9F5] px-4 py-2 rounded-2xl border border-[#E8E5DF]">

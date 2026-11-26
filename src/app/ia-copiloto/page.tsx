@@ -1,8 +1,10 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentTenant } from '@/lib/current-tenant';
+import { getCurrentUserContext } from '@/lib/admin-guard';
 import { ensureAiTables, DEFAULT_BEM_CORE_PHILOSOPHY } from '@/lib/ai/init-db';
 import { listStructuredMemories } from '@/lib/ai/memory';
 import { CopilotoView } from './CopilotoView';
+import { ShieldCheck } from 'lucide-react';
 
 export const metadata = {
   title: 'Central de Agentes B.E.M. & Conhecimento — BEM',
@@ -11,9 +13,28 @@ export const metadata = {
 };
 
 export default async function CopilotoPage() {
-  const tenant = await getCurrentTenant();
+  const [tenant, userCtx] = await Promise.all([
+    getCurrentTenant(),
+    getCurrentUserContext(),
+  ]);
   if (!tenant) {
     return <div className="p-8 text-sm text-gray-600">Consultório não autenticado.</div>;
+  }
+
+  if (!tenant.aiAgentsEnabled && !userCtx?.isSuperAdmin) {
+    return (
+      <div className="max-w-xl mx-auto mt-12 bg-white p-8 rounded-3xl border border-[#E8E5DF] shadow-sm text-center space-y-3">
+        <div className="w-12 h-12 rounded-2xl bg-[#EBF3ED] text-[#1F4D36] flex items-center justify-center mx-auto">
+          <ShieldCheck className="w-6 h-6" />
+        </div>
+        <h1 className="text-lg font-bold text-[#222924]">
+          Central de Agentes B.E.M. não habilitada neste consultório
+        </h1>
+        <p className="text-xs text-[#6B726B] leading-relaxed">
+          O acesso aos Agentes de IA B.E.M. é liberado individualmente pela Administração da plataforma. Entre em contato com o administrador para solicitar a ativação no seu plano.
+        </p>
+      </div>
+    );
   }
 
   await ensureAiTables(tenant.id);

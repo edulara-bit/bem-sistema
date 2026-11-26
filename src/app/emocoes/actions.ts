@@ -1,12 +1,11 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { getCurrentTenant } from '@/lib/current-tenant';
+import { requireSuperAdmin } from '@/lib/admin-guard';
 import { revalidatePath } from 'next/cache';
 
 export async function updateEmotionAction(formData: FormData) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Consultório não identificado.');
+  await requireSuperAdmin();
 
   const id = formData.get('id') as string;
   const title = (formData.get('title') as string) || '';
@@ -32,8 +31,7 @@ export async function updateEmotionAction(formData: FormData) {
 }
 
 export async function createEmotionAction(formData: FormData) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Consultório não identificado.');
+  await requireSuperAdmin();
 
   const title = (formData.get('title') as string) || '';
   const code = (formData.get('code') as string) || '';
@@ -43,7 +41,7 @@ export async function createEmotionAction(formData: FormData) {
 
   await prisma.emotion.create({
     data: {
-      tenantId: tenant.id,
+      tenantId: null, // Catálogo oficial global mantido exclusivamente pelo Admin
       title,
       code,
       type,
@@ -53,17 +51,18 @@ export async function createEmotionAction(formData: FormData) {
   });
 
   revalidatePath('/emocoes');
+  revalidatePath('/admin');
   return { success: true };
 }
 
 export async function deleteEmotionAction(id: string) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Consultório não identificado.');
+  await requireSuperAdmin();
 
   await prisma.emotion.delete({
     where: { id },
   });
 
   revalidatePath('/emocoes');
+  revalidatePath('/admin');
   return { success: true };
 }

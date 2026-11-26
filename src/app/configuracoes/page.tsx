@@ -36,6 +36,7 @@ export default async function ConfiguracoesPage() {
         name: tenant.name,
         slug: tenant.slug,
         plan: tenant.plan,
+        logoUrl: tenant.logoUrl,
         headline: tenant.headline,
         bio: tenant.bio,
         whatsapp: tenant.whatsapp,

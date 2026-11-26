@@ -1,26 +1,28 @@
-import { prisma } from '@/lib/prisma';
-import { getCurrentTenant } from '@/lib/current-tenant';
-import { EmotionsView } from './EmotionsView';
 import fs from 'fs';
 import path from 'path';
+import { prisma } from '@/lib/prisma';
+import { getCurrentTenant } from '@/lib/current-tenant';
+import { getCurrentUserContext } from '@/lib/admin-guard';
+import { EmotionsView } from './EmotionsView';
 
 export const metadata = {
   title: 'Catálogo de Emoções & Bioenergética — BEM',
-  description: 'Consulte, edite e personalize as descrições das 140 emoções clínicas trabalhadas nas sessões de Bioenergética.',
+  description:
+    'Catálogo oficial das emoções clínicas trabalhadas nas sessões de Bioenergética B.E.M.',
 };
 
 export default async function EmotionsPage() {
-  const tenant = await getCurrentTenant();
-  if (!tenant) return <div>Tenant não encontrado.</div>;
+  const [tenant, userCtx] = await Promise.all([
+    getCurrentTenant(),
+    getCurrentUserContext(),
+  ]);
+  if (!tenant) return <div>Consultório não encontrado.</div>;
 
+  // Catálogo oficial unificado B.E.M. (gerenciado pelo Admin e consultável por todos os consultórios)
   let emotions = await prisma.emotion.findMany({
-    where: {
-      OR: [{ tenantId: tenant.id }, { tenantId: null }],
-    },
     orderBy: [{ title: 'asc' }],
   });
 
-  // Auto-popula se o banco ainda não tiver as emoções populadas
   if (emotions.length === 0) {
     try {
       const jsonPath = path.join(process.cwd(), 'src/lib/emotions-detailed.json');
@@ -29,7 +31,7 @@ export default async function EmotionsPage() {
         for (const item of raw) {
           await prisma.emotion.create({
             data: {
-              tenantId: tenant.id,
+              tenantId: null,
               title: item.title,
               description: item.description,
               code: item.letra,
@@ -39,7 +41,6 @@ export default async function EmotionsPage() {
           });
         }
         emotions = await prisma.emotion.findMany({
-          where: { tenantId: tenant.id },
           orderBy: [{ title: 'asc' }],
         });
       }
@@ -48,5 +49,10 @@ export default async function EmotionsPage() {
     }
   }
 
-  return <EmotionsView emotions={emotions} />;
+  return (
+    <EmotionsView
+      emotions={emotions}
+      canManage={Boolean(userCtx?.isSuperAdmin)}
+    />
+  );
 }

@@ -88,12 +88,46 @@ export async function ensureAiTables(tenantId?: string) {
               `ALTER TABLE "Tenant" ADD COLUMN "aiDefaultDeliveryMode" TEXT NOT NULL DEFAULT 'review'`,
             ],
             ['aiCorePhilosophy', `ALTER TABLE "Tenant" ADD COLUMN "aiCorePhilosophy" TEXT`],
+            ['isActive', `ALTER TABLE "Tenant" ADD COLUMN "isActive" BOOLEAN NOT NULL DEFAULT 1`],
+            [
+              'aiAgentsEnabled',
+              `ALTER TABLE "Tenant" ADD COLUMN "aiAgentsEnabled" BOOLEAN NOT NULL DEFAULT 0`,
+            ],
+            ['logoUrl', `ALTER TABLE "Tenant" ADD COLUMN "logoUrl" TEXT`],
           ];
           for (const [colName, stmt] of alterDefs) {
             if (!colSet.has(colName)) {
               await prisma.$executeRawUnsafe(stmt);
             }
           }
+
+          // Colunas novas na tabela User (validação por código no celular e role super_admin)
+          const userCols = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
+            `PRAGMA table_info("User")`
+          );
+          const userColSet = new Set(userCols.map((c) => c.name));
+          const userAlterDefs: Array<[string, string]> = [
+            ['phone', `ALTER TABLE "User" ADD COLUMN "phone" TEXT`],
+            ['isVerified', `ALTER TABLE "User" ADD COLUMN "isVerified" BOOLEAN NOT NULL DEFAULT 1`],
+            ['verificationCode', `ALTER TABLE "User" ADD COLUMN "verificationCode" TEXT`],
+            [
+              'verificationExpiresAt',
+              `ALTER TABLE "User" ADD COLUMN "verificationExpiresAt" DATETIME`,
+            ],
+          ];
+          for (const [colName, stmt] of userAlterDefs) {
+            if (!userColSet.has(colName)) {
+              await prisma.$executeRawUnsafe(stmt);
+            }
+          }
+
+          // Garante que o consultório matriz 'edulara' (administrador da plataforma) tenha Super Admin e Agentes BEM ativos
+          await prisma.$executeRawUnsafe(
+            `UPDATE "Tenant" SET "aiAgentsEnabled" = 1, "isActive" = 1 WHERE "slug" = 'edulara'`
+          );
+          await prisma.$executeRawUnsafe(
+            `UPDATE "User" SET "role" = 'super_admin' WHERE "tenantId" IN (SELECT "id" FROM "Tenant" WHERE "slug" = 'edulara')`
+          );
 
           await prisma.$executeRawUnsafe(`
             CREATE TABLE IF NOT EXISTS "AiAgentConfig" (

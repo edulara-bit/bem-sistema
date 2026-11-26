@@ -56,6 +56,8 @@ export async function updateTenantSettingsAction(formData: FormData) {
   if (!tenant) throw new Error('Tenant não encontrado.');
 
   const name = formData.get('name') as string;
+  const logoUrlRaw = (formData.get('logoUrl') as string) || '';
+  const logoUrl = logoUrlRaw.trim() ? logoUrlRaw.trim() : null;
   const headline = (formData.get('headline') as string) || '';
   const bio = (formData.get('bio') as string) || '';
   const professionalReg = (formData.get('professionalReg') as string) || '';
@@ -77,6 +79,7 @@ export async function updateTenantSettingsAction(formData: FormData) {
     where: { id: tenant.id },
     data: {
       name,
+      logoUrl,
       headline,
       bio,
       professionalReg,
@@ -96,10 +99,11 @@ export async function updateTenantSettingsAction(formData: FormData) {
     },
   });
 
+  revalidatePath('/', 'layout');
   revalidatePath('/configuracoes');
   revalidatePath('/agendar');
+  revalidatePath('/reservar');
   revalidatePath('/financeiro');
-  revalidatePath('/');
   return { success: true };
 }
 

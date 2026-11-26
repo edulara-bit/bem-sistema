@@ -31,6 +31,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!tenant.aiAgentsEnabled && tenant.slug !== 'edulara') {
+      return NextResponse.json(
+        { success: false, error: 'Agentes B.E.M. não habilitados para este consultório.' },
+        { status: 403 }
+      );
+    }
+
     await ensureAiTables(tenant.id);
 
     const contentType = request.headers.get('content-type') || '';

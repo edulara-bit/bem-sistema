@@ -7,26 +7,41 @@ export async function getCurrentTenant() {
   const cookieStore = await cookies();
   await ensureAiTables();
 
-  // 1. Prioriza o tenant da sessão autenticada
   const sessionToken = cookieStore.get('bem_session')?.value;
+  const activeSlug = cookieStore.get('bem_active_tenant')?.value;
+
   if (sessionToken) {
     const session = await verifySessionToken(sessionToken);
-    if (session?.tenantId) {
-      const tenantFromSession = await prisma.tenant.findUnique({
-        where: { id: session.tenantId },
+    if (session?.userId) {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.userId },
+        include: { tenant: true },
       });
-      if (tenantFromSession) return tenantFromSession;
+
+      if (dbUser?.tenant) {
+        const isSuperAdmin =
+          dbUser.role === 'super_admin' ||
+          dbUser.role === 'admin' ||
+          dbUser.tenant.slug === 'edulara';
+
+        // Apenas Super Admin pode inspecionar outros consultórios via seletor bem_active_tenant
+        if (isSuperAdmin && activeSlug && activeSlug !== dbUser.tenant.slug) {
+          const switched = await prisma.tenant.findUnique({
+            where: { slug: activeSlug },
+          });
+          if (switched) return switched;
+        }
+
+        return dbUser.tenant;
+      }
     }
   }
 
-  // 2. Caso não esteja autenticado, busca pelo cookie ativo
-  const activeSlug = cookieStore.get('bem_active_tenant')?.value || 'edulara';
-
+  const fallbackSlug = activeSlug || 'edulara';
   let tenant = await prisma.tenant.findUnique({
-    where: { slug: activeSlug },
+    where: { slug: fallbackSlug },
   });
 
-  // Fallback para o primeiro tenant cadastrado se o slug do cookie não existir
   if (!tenant) {
     tenant = await prisma.tenant.findFirst({
       orderBy: { createdAt: 'asc' },
@@ -46,6 +61,9 @@ export async function getAllTenants() {
       slug: true,
       headline: true,
       plan: true,
+      isActive: true,
+      aiAgentsEnabled: true,
+      logoUrl: true,
     },
     orderBy: { createdAt: 'asc' },
   });

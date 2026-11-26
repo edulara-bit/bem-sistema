@@ -12,6 +12,9 @@ model Tenant {
   name              String
   slug              String   @unique
   plan              String   @default("free") // free, pro, clinic
+  isActive          Boolean  @default(true)   // Controle de ativação/inativação pelo Admin
+  aiAgentsEnabled   Boolean  @default(false)  // Liberado pelo Admin por consultório
+  logoUrl           String?  // Logomarca / imagem do consultório (Data URL otimizada ou URL)
   headline          String?  // Ex: "Psicoterapia & Acolhimento Humanizado"
   bio               String?  // Descrição do terapeuta para a página pública
   whatsapp          String?  // WhatsApp para contato direto
@@ -66,16 +69,20 @@ model Tenant {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  tenantId     String
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         String   @default("therapist") // therapist, admin, secretary
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                    String    @id @default(cuid())
+  tenantId              String
+  name                  String
+  email                 String    @unique
+  phone                 String?   // Celular para envio do código de validação
+  passwordHash          String
+  role                  String    @default("therapist") // super_admin, therapist, secretary
+  isVerified            Boolean   @default(true)
+  verificationCode      String?
+  verificationExpiresAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant                Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }

@@ -30,9 +30,10 @@ declare global {
 
 interface LandingPageViewProps {
   campaign?: 'default' | 'fim-de-ano';
+  logoUrl?: string | null;
 }
 
-export function LandingPageView({ campaign = 'default' }: LandingPageViewProps) {
+export function LandingPageView({ campaign = 'default', logoUrl }: LandingPageViewProps) {
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
@@ -118,9 +119,17 @@ export function LandingPageView({ campaign = 'default' }: LandingPageViewProps) 
       <header className="sticky top-0 z-40 bg-[#1F2A34]/95 backdrop-blur-md border-b border-white/10 px-4 py-2.5">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#25D366] flex items-center justify-center font-bold text-black text-sm">
-              B
-            </div>
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="B.E.M."
+                className="h-7 w-auto max-w-[110px] rounded-lg object-contain bg-white px-1 py-0.5"
+              />
+            ) : (
+              <div className="w-7 h-7 rounded-lg bg-[#25D366] flex items-center justify-center font-bold text-black text-sm">
+                B
+              </div>
+            )}
             <span className="font-semibold text-sm tracking-wide text-[#EFE7E1]">
               B.E.M.® <span className="text-xs text-[#B8C4B1] font-normal hidden sm:inline">• Medicina da Bioenergética</span>
             </span>

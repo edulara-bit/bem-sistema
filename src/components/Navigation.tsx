@@ -2,25 +2,26 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  Calendar, 
-  Users, 
-  DollarSign, 
-  Sparkles, 
-  LayoutDashboard, 
+import {
+  Calendar,
+  Users,
+  DollarSign,
+  Sparkles,
+  LayoutDashboard,
   Activity,
   PlusCircle,
   UserPlus,
   Settings,
   Target,
   LogOut,
-  Heart
+  Heart,
+  ShieldCheck,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { TenantSwitcher } from './TenantSwitcher';
 import { logoutAction } from '@/actions/auth-actions';
 
-export const navItems = [
+export const baseNavItems = [
   { href: '/cockpit', label: 'Hoje', icon: LayoutDashboard },
   { href: '/agenda', label: 'Agenda', icon: Calendar },
   { href: '/pacientes', label: 'Pacientes & Prontuário', icon: Users },
@@ -28,40 +29,80 @@ export const navItems = [
   { href: '/captacao', label: 'Captação & Funil', icon: UserPlus },
   { href: '/financeiro', label: 'Financeiro', icon: DollarSign },
   { href: '/metas', label: 'Metas & Burnout', icon: Target },
-  { href: '/ia-copiloto', label: 'Agentes B.E.M.', icon: Sparkles },
+  { href: '/ia-copiloto', label: 'Agentes B.E.M.', icon: Sparkles, requiresAi: true },
   { href: '/configuracoes', label: 'Configurações', icon: Settings },
+  { href: '/admin', label: 'Administração', icon: ShieldCheck, requiresAdmin: true },
 ];
+
+function getVisibleNavItems(isSuperAdmin: boolean, aiAgentsEnabled: boolean) {
+  return baseNavItems.filter((item) => {
+    if (item.requiresAdmin && !isSuperAdmin) return false;
+    if (item.requiresAi && !aiAgentsEnabled && !isSuperAdmin) return false;
+    return true;
+  });
+}
 
 export function TopNavbar({
   currentSlug = 'edulara',
+  tenantName,
+  logoUrl,
+  isSuperAdmin = false,
   allTenants = [],
 }: {
   currentSlug?: string;
-  allTenants?: { id: string; name: string; slug: string; plan: string }[];
+  tenantName?: string;
+  logoUrl?: string | null;
+  isSuperAdmin?: boolean;
+  allTenants?: {
+    id: string;
+    name: string;
+    slug: string;
+    plan: string;
+    isActive?: boolean;
+    logoUrl?: string | null;
+  }[];
 }) {
-  const currentTenant = allTenants.find((t) => t.slug === currentSlug) || allTenants[0];
+  const currentTenant = allTenants.find((t) => t.slug === currentSlug);
+  const displayLogo = logoUrl || currentTenant?.logoUrl || null;
+  const displayName = tenantName || currentTenant?.name || 'Espaço Terapêutico';
 
   return (
     <header className="sticky top-0 z-30 bg-[#FFFFFF]/95 backdrop-blur-md border-b border-[#E8E5DF] px-4 lg:px-8 py-3 flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <Link href="/cockpit" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-          <div className="w-9 h-9 rounded-xl bg-[#1F4D36] flex items-center justify-center text-white font-bold text-lg shadow-sm">
-            B
-          </div>
+        <Link
+          href="/cockpit"
+          className="flex items-center gap-3 hover:opacity-90 transition-opacity"
+        >
+          {displayLogo ? (
+            <img
+              src={displayLogo}
+              alt={displayName}
+              className="h-9 w-auto max-w-[130px] rounded-xl object-contain border border-[#E8E5DF] bg-white px-1.5 py-0.5 shadow-xs"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-xl bg-[#1F4D36] flex items-center justify-center text-white font-bold text-lg shadow-sm">
+              B
+            </div>
+          )}
           <div>
             <h1 className="text-base font-bold text-[#1F4D36] tracking-tight leading-none flex items-center gap-1.5">
-              BEM <span className="text-[10px] uppercase font-semibold bg-[#EBF3ED] text-[#1F4D36] px-1.5 py-0.5 rounded">Terapeuta</span>
+              BEM{' '}
+              <span className="text-[10px] uppercase font-semibold bg-[#EBF3ED] text-[#1F4D36] px-1.5 py-0.5 rounded">
+                {isSuperAdmin ? 'Admin' : 'Terapeuta'}
+              </span>
             </h1>
             <p className="text-xs text-[#6B726B] font-medium truncate max-w-[160px] sm:max-w-xs">
-              {currentTenant?.name || 'Espaço Terapêutico'}
+              {displayName}
             </p>
           </div>
         </Link>
       </div>
 
-      {/* Switcher & Ações */}
+      {/* Switcher (apenas Super Admin) & Ações */}
       <div className="flex items-center gap-2.5">
-        <TenantSwitcher currentSlug={currentSlug} allTenants={allTenants} />
+        {isSuperAdmin && allTenants.length > 0 && (
+          <TenantSwitcher currentSlug={currentSlug} allTenants={allTenants} />
+        )}
         <Link
           href="/agenda"
           className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1F4D36] text-white text-xs font-semibold hover:bg-[#183C2A] transition-all shadow-sm"
@@ -81,15 +122,26 @@ export function TopNavbar({
   );
 }
 
-export function Sidebar({ tenantName }: { tenantName?: string }) {
+export function Sidebar({
+  tenantName,
+  isSuperAdmin = false,
+  aiAgentsEnabled = false,
+}: {
+  tenantName?: string;
+  isSuperAdmin?: boolean;
+  aiAgentsEnabled?: boolean;
+}) {
   const pathname = usePathname();
+  const visibleItems = getVisibleNavItems(isSuperAdmin, aiAgentsEnabled);
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-white border-r border-[#E8E5DF] shrink-0 sticky top-[57px] h-[calc(100vh-57px)] p-4 overflow-y-auto">
       <div className="space-y-1">
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || (item.href !== '/cockpit' && pathname?.startsWith(item.href));
+          const isActive =
+            pathname === item.href ||
+            (item.href !== '/cockpit' && pathname?.startsWith(item.href));
           return (
             <Link
               key={item.href}
@@ -101,7 +153,12 @@ export function Sidebar({ tenantName }: { tenantName?: string }) {
                   : 'text-[#6B726B] hover:bg-[#FBF9F5] hover:text-[#222924]'
               )}
             >
-              <Icon className={clsx('w-5 h-5', isActive ? 'text-[#1F4D36]' : 'text-[#6B726B]')} />
+              <Icon
+                className={clsx(
+                  'w-5 h-5',
+                  isActive ? 'text-[#1F4D36]' : 'text-[#6B726B]'
+                )}
+              />
               {item.label}
             </Link>
           );
@@ -131,20 +188,29 @@ export function Sidebar({ tenantName }: { tenantName?: string }) {
   );
 }
 
-export function MobileBottomNav() {
+export function MobileBottomNav({
+  isSuperAdmin = false,
+  aiAgentsEnabled = false,
+}: {
+  isSuperAdmin?: boolean;
+  aiAgentsEnabled?: boolean;
+}) {
   const pathname = usePathname();
+  const visibleItems = getVisibleNavItems(isSuperAdmin, aiAgentsEnabled);
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#E8E5DF] px-2 py-1.5 flex justify-around items-center safe-area-bottom shadow-lg">
-      {navItems.map((item) => {
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#E8E5DF] px-2 py-1.5 flex justify-around items-center safe-area-bottom shadow-lg overflow-x-auto">
+      {visibleItems.map((item) => {
         const Icon = item.icon;
-        const isActive = pathname === item.href || (item.href !== '/cockpit' && pathname?.startsWith(item.href));
+        const isActive =
+          pathname === item.href ||
+          (item.href !== '/cockpit' && pathname?.startsWith(item.href));
         return (
           <Link
             key={item.href}
             href={item.href}
             className={clsx(
-              'flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-[10px] font-medium transition-all',
+              'flex flex-col items-center justify-center py-1 px-2 rounded-xl text-[10px] font-medium transition-all shrink-0',
               isActive
                 ? 'text-[#1F4D36] font-bold'
                 : 'text-[#6B726B] hover:text-[#222924]'
@@ -158,7 +224,7 @@ export function MobileBottomNav() {
             >
               <Icon className="w-5 h-5" />
             </div>
-            <span className="truncate max-w-[64px]">{item.label.split(' ')[0]}</span>
+            <span className="truncate max-w-[58px]">{item.label.split(' ')[0]}</span>
           </Link>
         );
       })}

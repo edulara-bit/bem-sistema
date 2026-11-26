@@ -42,6 +42,7 @@ interface TenantData {
   name: string;
   slug: string;
   plan: string;
+  logoUrl?: string | null;
   headline?: string | null;
   bio?: string | null;
   whatsapp?: string | null;
@@ -89,6 +90,51 @@ export function ConfiguracoesView({
   const [isLoadingQr, setIsLoadingQr] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(tenant.whatsappQrCode || null);
   const [whatsappStatus, setWhatsappStatus] = useState<string>(tenant.whatsappStatus || 'disconnected');
+  const [logoPreview, setLogoPreview] = useState<string>(tenant.logoUrl || '');
+
+  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Selecione um arquivo de imagem válido (PNG, JPG, WebP ou SVG).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '');
+      const img = new window.Image();
+      img.onload = () => {
+        const maxDim = 420;
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w >= h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          // Preserva transparência em PNG
+          setLogoPreview(canvas.toDataURL('image/png', 0.9));
+        } else {
+          setLogoPreview(dataUrl);
+        }
+      };
+      img.onerror = () => setLogoPreview(dataUrl);
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Estado para múltiplos lembretes
   const [reminder24h, setReminder24h] = useState<boolean>(tenant.whatsappAutoReminder ?? true);
@@ -313,6 +359,7 @@ export function ConfiguracoesView({
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <input type="hidden" name="tenantSlug" value={tenant.slug} />
+        <input type="hidden" name="logoUrl" value={logoPreview} />
 
         {/* ABA 1: Identidade Profissional */}
         {activeTab === 'geral' && (
@@ -320,8 +367,54 @@ export function ConfiguracoesView({
             <div className="flex items-center gap-2 border-b border-[#E8E5DF] pb-3">
               <User className="w-5 h-5 text-[#1F4D36]" />
               <div>
-                <h2 className="text-sm font-bold text-[#222924]">Identidade do Consultório</h2>
-                <p className="text-[11px] text-[#6B726B]">Como seus pacientes e o público visualizam seu nome e especialidade</p>
+                <h2 className="text-sm font-bold text-[#222924]">Identidade do Consultório & Logomarca</h2>
+                <p className="text-[11px] text-[#6B726B]">Como seus pacientes visualizam sua marca no topo do sistema e na página pública</p>
+              </div>
+            </div>
+
+            {/* Upload de Imagem / Logomarca */}
+            <div className="p-4 rounded-2xl bg-[#FBF9F5] border border-[#E8E5DF] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                {logoPreview ? (
+                  <img
+                    src={logoPreview}
+                    alt="Logomarca do Consultório"
+                    className="h-16 w-auto max-w-[160px] rounded-2xl object-contain border border-[#E8E5DF] bg-white p-2 shadow-xs"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-2xl bg-[#1F4D36] text-white font-bold text-2xl flex items-center justify-center shadow-xs shrink-0">
+                    {tenant.name.charAt(0)}
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <span className="text-xs font-bold text-[#222924] block">
+                    Logomarca ou Foto do Consultório
+                  </span>
+                  <p className="text-[11px] text-[#6B726B]">
+                    Exibida no topo do painel interno e no cabeçalho das suas páginas públicas de agendamento.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+                <label className="px-3.5 py-2 rounded-xl bg-[#1F4D36] text-white text-xs font-bold hover:bg-[#183C2A] cursor-pointer transition-all shadow-xs">
+                  Escolher Imagem
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    onChange={handleLogoFileChange}
+                    className="hidden"
+                  />
+                </label>
+                {logoPreview && (
+                  <button
+                    type="button"
+                    onClick={() => setLogoPreview('')}
+                    className="px-3 py-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold"
+                  >
+                    Remover
+                  </button>
+                )}
               </div>
             </div>
 

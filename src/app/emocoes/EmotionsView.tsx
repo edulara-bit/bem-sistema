@@ -27,7 +27,13 @@ interface EmotionItem {
   type: string;
 }
 
-export function EmotionsView({ emotions }: { emotions: EmotionItem[] }) {
+export function EmotionsView({
+  emotions,
+  canManage = false,
+}: {
+  emotions: EmotionItem[];
+  canManage?: boolean;
+}) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'Negativa' | 'Positiva'>('all');
   
@@ -63,17 +69,26 @@ export function EmotionsView({ emotions }: { emotions: EmotionItem[] }) {
             Catálogo de Emoções Clínicas ({emotions.length})
           </h1>
           <p className="text-xs text-[#6B726B] mt-0.5">
-            Consulte as descrições profundas do sistema Bemcenter e edite os conceitos e frases de acordo com sua abordagem clínica.
+            {canManage
+              ? 'Gerencie, cadastre e edite as descrições oficiais do catálogo de emoções B.E.M.'
+              : 'Consulte as descrições e frases de ancoragem oficiais da metodologia B.E.M.'}
           </p>
         </div>
 
-        <button
-          onClick={() => setShowNewModal(true)}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#1F4D36] text-white text-xs font-semibold hover:bg-[#183C2A] transition-all shadow-sm self-start sm:self-center"
-        >
-          <Plus className="w-4 h-4" />
-          Nova Emoção
-        </button>
+        {canManage ? (
+          <button
+            onClick={() => setShowNewModal(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#1F4D36] text-white text-xs font-semibold hover:bg-[#183C2A] transition-all shadow-sm self-start sm:self-center"
+          >
+            <Plus className="w-4 h-4" />
+            Nova Emoção
+          </button>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FBF9F5] border border-[#E8E5DF] text-xs font-semibold text-[#6B726B]">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#1F4D36]" />
+            Catálogo Oficial B.E.M. (Somente Consulta)
+          </span>
+        )}
       </div>
 
       {showSuccess && (
@@ -180,14 +195,16 @@ export function EmotionsView({ emotions }: { emotions: EmotionItem[] }) {
                     Ler Completa
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setEditingEmotion(item)}
-                    className="px-2.5 py-1.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] hover:bg-white text-xs font-semibold flex items-center gap-1 transition-all"
-                  >
-                    <Edit2 className="w-3.5 h-3.5 text-gray-500" />
-                    Editar
-                  </button>
+                  {canManage && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingEmotion(item)}
+                      className="px-2.5 py-1.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-[#222924] hover:bg-white text-xs font-semibold flex items-center gap-1 transition-all"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-gray-500" />
+                      Editar
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -249,18 +266,28 @@ export function EmotionsView({ emotions }: { emotions: EmotionItem[] }) {
             </div>
 
             <div className="pt-3 border-t border-[#E8E5DF] flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const target = readingEmotion;
-                  setReadingEmotion(null);
-                  setEditingEmotion(target);
-                }}
-                className="px-3.5 py-2 rounded-xl bg-[#1F4D36] text-white text-xs font-semibold hover:bg-[#183C2A] flex items-center gap-1.5"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-                Editar esta Descrição
-              </button>
+              {canManage ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = readingEmotion;
+                    setReadingEmotion(null);
+                    setEditingEmotion(target);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-[#1F4D36] text-white text-xs font-semibold hover:bg-[#183C2A] flex items-center gap-1.5"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  Editar esta Descrição
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setReadingEmotion(null)}
+                  className="px-4 py-2 rounded-xl bg-[#1F4D36] text-white text-xs font-semibold hover:bg-[#183C2A]"
+                >
+                  Fechar
+                </button>
+              )}
             </div>
           </div>
         </div>

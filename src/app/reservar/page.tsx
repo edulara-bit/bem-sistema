@@ -39,6 +39,9 @@ export default async function ReservarQueryPage({
   }
 
   const tenant = patient.tenant;
+  if (!tenant.isActive) {
+    return notFound();
+  }
   const availableDays = await getPatientBookingAvailability(tenant.id);
 
   return (
@@ -51,6 +54,7 @@ export default async function ReservarQueryPage({
         id: tenant.id,
         name: tenant.name,
         slug: tenant.slug,
+        logoUrl: tenant.logoUrl || null,
         headline: tenant.headline,
         whatsapp: tenant.whatsapp,
         consultationPrice: tenant.consultationPrice,

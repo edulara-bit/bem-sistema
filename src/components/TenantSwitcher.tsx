@@ -10,6 +10,7 @@ interface TenantSummary {
   name: string;
   slug: string;
   plan: string;
+  isActive?: boolean;
 }
 
 export function TenantSwitcher({
@@ -36,16 +37,18 @@ export function TenantSwitcher({
         className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] hover:bg-white text-xs font-semibold text-[#222924] transition-all shadow-xs"
       >
         <Building2 className="w-3.5 h-3.5 text-[#1F4D36]" />
-        <span className="truncate max-w-[140px] sm:max-w-[180px]">{current?.name || 'Consultório'}</span>
+        <span className="truncate max-w-[140px] sm:max-w-[180px]">
+          {current?.name || 'Consultório'}
+        </span>
         <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
       </button>
 
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-[#E8E5DF] p-2 z-50 animate-fade-in space-y-1">
+          <div className="absolute right-0 mt-2 w-68 bg-white rounded-2xl shadow-xl border border-[#E8E5DF] p-2 z-50 animate-fade-in space-y-1 max-h-96 overflow-y-auto">
             <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#6B726B] border-b border-[#E8E5DF]">
-              Alternar Consultório (Multi-Tenant)
+              Alternar Consultório (Visão Super Admin)
             </div>
 
             {allTenants.map((t) => {
@@ -61,8 +64,17 @@ export function TenantSwitcher({
                   }`}
                 >
                   <div className="truncate">
-                    <div className="truncate">{t.name}</div>
-                    <div className="text-[10px] text-[#6B726B] font-normal">{t.slug} • Plano {t.plan.toUpperCase()}</div>
+                    <div className="truncate flex items-center gap-1.5">
+                      <span>{t.name}</span>
+                      {t.isActive === false && (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-red-100 text-red-700 font-bold">
+                          Inativo
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-[#6B726B] font-normal">
+                      /{t.slug}
+                    </div>
                   </div>
                   {isSelected && <Check className="w-4 h-4 text-[#1F4D36] shrink-0 ml-2" />}
                 </button>
@@ -71,12 +83,12 @@ export function TenantSwitcher({
 
             <div className="pt-1.5 border-t border-[#E8E5DF]">
               <Link
-                href="/cadastro"
+                href="/admin"
                 onClick={() => setOpen(false)}
                 className="w-full px-3 py-2 rounded-xl text-xs font-semibold text-[#1F4D36] hover:bg-[#EBF3ED] transition-all flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
-                Cadastrar Novo Terapeuta
+                Gerenciar / Cadastrar Terapeuta
               </Link>
             </div>
           </div>
@@ -85,4 +97,3 @@ export function TenantSwitcher({
     </div>
   );
 }
-

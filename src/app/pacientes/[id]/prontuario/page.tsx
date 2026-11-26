@@ -1,5 +1,6 @@
 import { getTenantDb, prisma } from '@/lib/prisma';
 import { getCurrentTenant } from '@/lib/current-tenant';
+import { getCurrentUserContext } from '@/lib/admin-guard';
 import { decryptText } from '@/lib/crypto';
 import { ensureAiTables } from '@/lib/ai/init-db';
 import { listStructuredMemories } from '@/lib/ai/memory';
@@ -28,11 +29,8 @@ export default async function ProntuarioPage({
     notFound();
   }
 
-  // Busca emoções do banco ou do arquivo detalhado
+  // Busca catálogo oficial global de emoções B.E.M.
   let emotions = await prisma.emotion.findMany({
-    where: {
-      OR: [{ tenantId: tenant.id }, { tenantId: null }],
-    },
     orderBy: [{ title: 'asc' }],
   });
 
@@ -123,7 +121,7 @@ export default async function ProntuarioPage({
 
   await ensureAiTables(tenant.id);
 
-  const [patientMemories, patientPrograms, freshTenant] = await Promise.all([
+  const [patientMemories, patientPrograms, freshTenant, userCtx] = await Promise.all([
     listStructuredMemories({
       tenantId: tenant.id,
       scope: 'atendimento',
@@ -137,9 +135,13 @@ export default async function ProntuarioPage({
     }),
     prisma.tenant.findUnique({
       where: { id: tenant.id },
-      select: { aiDefaultDeliveryMode: true },
+      select: { aiDefaultDeliveryMode: true, aiAgentsEnabled: true },
     }),
+    getCurrentUserContext(),
   ]);
+
+  const isSuperAdmin = Boolean(userCtx?.isSuperAdmin);
+  const aiAgentsEnabled = Boolean(freshTenant?.aiAgentsEnabled || isSuperAdmin);
 
   return (
     <ProntuarioView
@@ -174,6 +176,8 @@ export default async function ProntuarioPage({
         steps: JSON.parse(p.stepsJson || '[]'),
       }))}
       defaultDeliveryMode={(freshTenant?.aiDefaultDeliveryMode as 'review' | 'auto') || 'review'}
+      aiAgentsEnabled={aiAgentsEnabled}
+      isSuperAdmin={isSuperAdmin}
     />
   );
 }

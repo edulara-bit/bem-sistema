@@ -4,6 +4,19 @@ import crypto from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { getCurrentTenant } from '@/lib/current-tenant';
+import { getCurrentUserContext } from '@/lib/admin-guard';
+
+async function requireAiEnabledTenant() {
+  const [tenant, userCtx] = await Promise.all([
+    getCurrentTenant(),
+    getCurrentUserContext(),
+  ]);
+  if (!tenant) throw new Error('Não autenticado.');
+  if (!tenant.aiAgentsEnabled && !userCtx?.isSuperAdmin) {
+    throw new Error('O módulo Agentes B.E.M. não está habilitado para este consultório.');
+  }
+  return tenant;
+}
 import { generateSocialContentWithAI } from '@/lib/ai/gemini';
 import { ensureAiTables } from '@/lib/ai/init-db';
 import {
@@ -25,8 +38,7 @@ export async function generateContentAction(
   theme: string,
   format: 'reels' | 'carousel' | 'post' = 'carousel'
 ) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
   if (!theme || theme.trim().length < 3) {
     throw new Error('Informe um tema válido para a geração.');
   }
@@ -39,8 +51,7 @@ export async function invokeAgentChatAction(payload: {
   patientId?: string | null;
   threadId?: string | null;
 }) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
   if (!payload.prompt?.trim()) throw new Error('Digite uma instrução ou pergunta.');
 
   const result = await runBemAgent({
@@ -62,8 +73,7 @@ export async function saveAgentConfigAction(payload: {
   autoMemory: boolean;
   webhookUrl?: string;
 }) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
   await ensureAiTables(tenant.id);
 
   await prisma.aiAgentConfig.update({
@@ -86,8 +96,7 @@ export async function saveCorePhilosophyAndAutomationAction(payload: {
   n8nWebhookUrl?: string;
   regenerateApiKey?: boolean;
 }) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
   await ensureAiTables(tenant.id);
 
   const newKey = payload.regenerateApiKey
@@ -127,8 +136,7 @@ export async function addKnowledgeSourceAction(payload: {
   tags?: string;
   isPinned?: boolean;
 }) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
   await ensureAiTables(tenant.id);
 
   let finalContent = (payload.rawContent || '').trim();
@@ -163,8 +171,7 @@ export async function addKnowledgeSourceAction(payload: {
 }
 
 export async function toggleKnowledgePinAction(id: string, isPinned: boolean) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
   await prisma.knowledgeSource.updateMany({
     where: { id, tenantId: tenant.id },
     data: { isPinned },
@@ -174,8 +181,7 @@ export async function toggleKnowledgePinAction(id: string, isPinned: boolean) {
 }
 
 export async function deleteKnowledgeSourceAction(id: string) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
   await prisma.knowledgeSource.deleteMany({
     where: { id, tenantId: tenant.id },
   });
@@ -192,8 +198,7 @@ export async function addStructuredMemoryAction(payload: {
   importance?: number;
   isPinned?: boolean;
 }) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
   await ensureAiTables(tenant.id);
 
   await createStructuredMemory({
@@ -216,8 +221,7 @@ export async function addStructuredMemoryAction(payload: {
 }
 
 export async function toggleMemoryPinAction(id: string, isPinned: boolean) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
   await prisma.structuredMemory.updateMany({
     where: { id, tenantId: tenant.id },
     data: { isPinned },
@@ -227,8 +231,7 @@ export async function toggleMemoryPinAction(id: string, isPinned: boolean) {
 }
 
 export async function deleteMemoryAction(id: string) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
   await prisma.structuredMemory.deleteMany({
     where: { id, tenantId: tenant.id },
   });
@@ -243,8 +246,7 @@ export async function createProgramAction(payload: {
   deliveryMode: 'review' | 'auto';
   sendFirstDayNow?: boolean;
 }) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
 
   const res = await generateConsciousnessProgram({
     tenantId: tenant.id,
@@ -268,8 +270,7 @@ export async function createProgramAction(payload: {
 }
 
 export async function advanceProgramDayAction(programId: string) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
 
   const prog = await prisma.patientProgram.findFirst({
     where: { id: programId, tenantId: tenant.id },
@@ -319,8 +320,7 @@ export async function advanceProgramDayAction(programId: string) {
 }
 
 export async function approveDispatchAction(dispatchId: string, editedText?: string) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
 
   const result = await executeDispatchNow(tenant.id, dispatchId, editedText);
   revalidatePath('/ia-copiloto');
@@ -328,8 +328,7 @@ export async function approveDispatchAction(dispatchId: string, editedText?: str
 }
 
 export async function rejectDispatchAction(dispatchId: string) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
 
   await prisma.aiMessageDispatch.updateMany({
     where: { id: dispatchId, tenantId: tenant.id },
@@ -346,8 +345,7 @@ export async function queueDirectAgentReplyAction(payload: {
   messageText: string;
   deliveryModeOverride?: 'review' | 'auto';
 }) {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
 
   const res = await queueOrSendPatientMessage({
     tenantId: tenant.id,
@@ -363,8 +361,7 @@ export async function queueDirectAgentReplyAction(payload: {
 }
 
 export async function testN8nWebhookAction() {
-  const tenant = await getCurrentTenant();
-  if (!tenant) throw new Error('Não autenticado.');
+  const tenant = await requireAiEnabledTenant();
 
   return await fireN8nWebhook(tenant.id, 'bem.webhook_test', {
     message: 'Conexão entre plataforma B.E.M. e n8n validada com sucesso!',

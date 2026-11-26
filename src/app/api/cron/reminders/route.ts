@@ -25,6 +25,7 @@ export async function GET(request: Request) {
     // Busca tenants com WhatsApp conectado
     const tenants = await prisma.tenant.findMany({
       where: {
+        isActive: true,
         whatsappStatus: 'open',
         whatsappInstanceName: { not: null },
       },

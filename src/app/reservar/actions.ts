@@ -36,8 +36,8 @@ export async function bookPatientSlotAction(payload: {
       include: { tenant: true },
     });
 
-    if (!patient || !patient.tenant) {
-      return { success: false, error: 'Paciente não encontrado ou cadastro inativo.' };
+    if (!patient || !patient.tenant || !patient.tenant.isActive) {
+      return { success: false, error: 'Consultório ou cadastro temporariamente indisponível para agendamentos.' };
     }
 
     const tenant = patient.tenant;

@@ -3,25 +3,39 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Lock, Mail, ArrowRight, ShieldCheck, AlertCircle, Building2, Eye, EyeOff } from 'lucide-react';
+import {
+  Lock,
+  Mail,
+  ArrowRight,
+  ShieldCheck,
+  AlertCircle,
+  Smartphone,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 import { loginAction } from '@/actions/auth-actions';
 
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setPendingEmail(null);
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const result = await loginAction(formData);
+    const result: any = await loginAction(formData);
 
     if (!result.success) {
       setError(result.error || 'Erro ao realizar login.');
+      if (result.needsActivation && result.email) {
+        setPendingEmail(result.email);
+      }
       setIsLoading(false);
     } else {
       router.push(result.redirectUrl || '/cockpit');
@@ -32,14 +46,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#FBF9F5] flex flex-col justify-center items-center p-4 sm:p-6 text-[#222924]">
       <div className="w-full max-w-md space-y-6">
-        {/* Cabeçalho */}
         <div className="text-center space-y-2">
           <div className="w-12 h-12 rounded-2xl bg-[#1F4D36] text-white flex items-center justify-center font-bold text-2xl mx-auto shadow-md">
             B
           </div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EBF3ED] text-[#1F4D36] text-xs font-semibold">
             <ShieldCheck className="w-3.5 h-3.5" />
-            Acesso Restrito aos Consultórios
+            Acesso Exclusivo a Terapeutas Credenciados
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-[#222924]">
             Entrar no Sistema BEM
@@ -49,12 +62,21 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Card de Formulário */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E8E5DF] shadow-sm space-y-5">
           {error && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
+            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs space-y-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+              {pendingEmail && (
+                <Link
+                  href={`/cadastro?email=${encodeURIComponent(pendingEmail)}`}
+                  className="inline-flex items-center gap-1 font-bold text-[#1F4D36] underline"
+                >
+                  Validar código do celular e criar minha senha agora →
+                </Link>
+              )}
             </div>
           )}
 
@@ -115,21 +137,20 @@ export default function LoginPage() {
           </form>
 
           <div className="pt-4 border-t border-[#E8E5DF] flex flex-col sm:flex-row items-center justify-between text-xs text-[#6B726B] gap-2">
-            <span>Novo consultório?</span>
+            <span>Recebeu convite da Administração?</span>
             <Link
               href="/cadastro"
               className="font-semibold text-[#1F4D36] hover:underline flex items-center gap-1"
             >
-              <Building2 className="w-3.5 h-3.5" />
-              Cadastre seu espaço terapêutico
+              <Smartphone className="w-3.5 h-3.5" />
+              Validar código e criar senha
             </Link>
           </div>
         </div>
 
-        {/* Informação sobre isolamento de dados */}
         <div className="text-center">
           <p className="text-[11px] text-[#6B726B]">
-            🛡️ Arquitetura Multi-Tenant com isolamento seguro por banco de dados e criptografia LGPD de ponta a ponta.
+            🛡️ Arquitetura Multi-Tenant com isolamento seguro por consultório e criptografia LGPD de ponta a ponta.
           </p>
         </div>
       </div>

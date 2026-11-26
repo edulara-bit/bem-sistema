@@ -21,6 +21,7 @@ export function AgendarView({
   therapist: {
     name: string;
     slug: string;
+    logoUrl?: string | null;
     headline?: string | null;
     bio?: string | null;
     consultationPrice: number;
@@ -54,9 +55,17 @@ export function AgendarView({
       <div className="max-w-2xl mx-auto space-y-8">
         {/* Card do Terapeuta */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E8E5DF] shadow-sm text-center space-y-4">
-          <div className="w-20 h-20 rounded-full bg-[#1F4D36] text-white flex items-center justify-center text-3xl font-bold mx-auto shadow-md">
-            {therapist.name.charAt(0)}
-          </div>
+          {therapist.logoUrl ? (
+            <img
+              src={therapist.logoUrl}
+              alt={therapist.name}
+              className="h-20 w-auto max-w-[220px] rounded-2xl object-contain mx-auto border border-[#E8E5DF] bg-white p-2 shadow-xs"
+            />
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-[#1F4D36] text-white flex items-center justify-center text-3xl font-bold mx-auto shadow-md">
+              {therapist.name.charAt(0)}
+            </div>
+          )}
 
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EBF3ED] text-[#1F4D36] text-xs font-semibold mb-2">
