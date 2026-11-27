@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Sparkles,
@@ -13,6 +14,10 @@ import {
   Play,
   ShieldCheck,
   HeartHandshake,
+  MessageCircle,
+  Copy,
+  Check,
+  Settings,
 } from 'lucide-react';
 import {
   compilePatientFeedbackAction,
@@ -30,6 +35,7 @@ import type { DecryptedMemoryItem } from '@/lib/ai/memory';
 export function PatientAiPanel({
   patient,
   appointmentId,
+  tonePresets = [],
   draftRawNotes,
   draftSoap,
   draftEmotions,
@@ -39,8 +45,9 @@ export function PatientAiPanel({
   programs,
   defaultDeliveryMode,
 }: {
-  patient: { id: string; name: string };
+  patient: { id: string; name: string; phone?: string };
   appointmentId?: string;
+  tonePresets?: Array<{ id: string; name: string; prompt: string }>;
   draftRawNotes: string;
   draftSoap: { subjective: string; objective: string; assessment: string; plan: string };
   draftEmotions: string[];
@@ -67,12 +74,24 @@ export function PatientAiPanel({
   const router = useRouter();
 
   // --- Pós-Sessão ---
+  const [selectedToneId, setSelectedToneId] = useState<string>(tonePresets[0]?.id || '');
   const [feedbackText, setFeedbackText] = useState('');
   const [sourcesUsed, setSourcesUsed] = useState<string[]>([]);
   const [deliveryMode, setDeliveryMode] = useState<'review' | 'auto'>(defaultDeliveryMode);
   const [isCompiling, setIsCompiling] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [copiedFeedback, setCopiedFeedback] = useState(false);
   const [sendResultMsg, setSendResultMsg] = useState<string | null>(null);
+
+  const getWhatsAppDirectHref = (text: string) => {
+    const digits = (patient.phone || '').replace(/\D/g, '');
+    const fullPhone = digits
+      ? digits.startsWith('55')
+        ? digits
+        : `55${digits}`
+      : '';
+    return `https://wa.me/${fullPhone}?text=${encodeURIComponent(text)}`;
+  };
 
   // --- Jornadas / Desafios ---
   const [progTheme, setProgTheme] = useState('');
@@ -109,6 +128,7 @@ export function PatientAiPanel({
       const res = await compilePatientFeedbackAction({
         patientId: patient.id,
         appointmentId,
+        toneId: selectedToneId || undefined,
         rawNotes: sourceRaw,
         soap: sourceSoap,
         emocoesTrabalhadas: sourceEmotions,
@@ -218,19 +238,44 @@ export function PatientAiPanel({
               Compilação de Feedback Pós-Sessão para {patient.name}
             </h2>
             <p className="text-xs text-[#6B726B]">
-              Une automaticamente as situações apontadas (Medos, Relacionamento, Timeline), emoções trabalhadas, frequências vibracionais associadas, frases de ancoragem e a memória evolutiva do paciente.
+              Analisa questões, emoções e frequências da sessão usando estritamente a base de conhecimento do Agente de Devolutiva & Pós-Sessão.
             </p>
           </div>
 
-          <button
-            type="button"
-            disabled={isCompiling}
-            onClick={handleCompileFeedback}
-            className="px-4 py-2.5 rounded-xl bg-[#1F4D36] text-white text-xs font-bold hover:bg-[#183C2A] disabled:opacity-50 flex items-center gap-2 shrink-0 shadow-sm"
-          >
-            <Sparkles className="w-4 h-4" />
-            {isCompiling ? 'Compilando com Filosofia B.E.M....' : 'Gerar Feedback Pós-Sessão'}
-          </button>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {tonePresets.length > 0 && (
+              <select
+                value={selectedToneId}
+                onChange={(e) => setSelectedToneId(e.target.value)}
+                className="px-3 py-2 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-xs font-bold text-[#222924]"
+              >
+                {tonePresets.map((tp) => (
+                  <option key={tp.id} value={tp.id}>
+                    Tom: {tp.name}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <Link
+              href="/ia-copiloto?tab=tones"
+              target="_blank"
+              title="Editar o prompt de cada tom em Agentes B.E.M."
+              className="p-2 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] hover:bg-white text-[#1F4D36]"
+            >
+              <Settings className="w-4 h-4" />
+            </Link>
+
+            <button
+              type="button"
+              disabled={isCompiling}
+              onClick={handleCompileFeedback}
+              className="px-4 py-2.5 rounded-xl bg-[#1F4D36] text-white text-xs font-bold hover:bg-[#183C2A] disabled:opacity-50 flex items-center gap-2 shrink-0 shadow-sm"
+            >
+              <Sparkles className="w-4 h-4" />
+              {isCompiling ? 'Compilando...' : 'Gerar Feedback Pós-Sessão'}
+            </button>
+          </div>
         </div>
 
         {feedbackText ? (
@@ -255,32 +300,60 @@ export function PatientAiPanel({
               className="w-full p-4 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-xs text-[#222924] leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/25"
             />
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-[#222924]">Modo de Envio:</label>
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={getWhatsAppDirectHref(feedbackText)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-black text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                >
+                  <MessageCircle className="w-4 h-4 fill-black" />
+                  Abrir no WhatsApp (Manual)
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(feedbackText);
+                    setCopiedFeedback(true);
+                    setTimeout(() => setCopiedFeedback(false), 2500);
+                  }}
+                  className="px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] hover:bg-white text-xs font-bold text-[#222924] flex items-center gap-1.5"
+                >
+                  {copiedFeedback ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5 text-gray-500" />
+                  )}
+                  {copiedFeedback ? 'Copiado!' : 'Copiar Texto'}
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
                 <select
                   value={deliveryMode}
                   onChange={(e) => setDeliveryMode(e.target.value as 'review' | 'auto')}
-                  className="px-3 py-1.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-xs font-semibold text-[#222924]"
+                  className="px-3 py-2 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-xs font-semibold text-[#222924]"
                 >
-                  <option value="auto">⚡ Disparo Direto Agora no WhatsApp</option>
-                  <option value="review">🛡️ Guardar na Fila de Revisão antes de enviar</option>
+                  <option value="auto">⚡ Disparo via WhatsApp Conectado</option>
+                  <option value="review">🛡️ Guardar na Fila de Revisão</option>
                 </select>
-              </div>
 
-              <button
-                type="button"
-                disabled={isSending}
-                onClick={handleDispatchFeedback}
-                className="px-5 py-2.5 rounded-xl bg-[#1F4D36] text-white text-xs font-bold hover:bg-[#183C2A] flex items-center gap-2"
-              >
-                <Send className="w-3.5 h-3.5" />
-                {isSending
-                  ? 'Processando...'
-                  : deliveryMode === 'auto'
-                  ? 'Aprovar e Enviar Agora no WhatsApp'
-                  : 'Salvar na Fila de Revisão'}
-              </button>
+                <button
+                  type="button"
+                  disabled={isSending}
+                  onClick={handleDispatchFeedback}
+                  className="px-4 py-2.5 rounded-xl bg-[#1F4D36] text-white text-xs font-bold hover:bg-[#183C2A] flex items-center gap-2"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  {isSending
+                    ? 'Enviando...'
+                    : deliveryMode === 'auto'
+                    ? 'Disparar Agora'
+                    : 'Salvar na Fila'}
+                </button>
+              </div>
             </div>
 
             {sendResultMsg && (

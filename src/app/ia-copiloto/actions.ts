@@ -378,3 +378,78 @@ export async function testN8nWebhookAction() {
     testedBy: tenant.name,
   });
 }
+
+// ================= GESTÃO DE TONS DE CONVERSA (PROMPTS POR TOM) =================
+
+export async function createTonePresetAction(payload: { name: string; prompt: string }) {
+  const tenant = await requireAiEnabledTenant();
+  await ensureAiTables(tenant.id);
+
+  const name = (payload.name || '').trim();
+  const prompt = (payload.prompt || '').trim();
+  if (!name || !prompt) {
+    throw new Error('Informe o nome do tom e o prompt de instruções.');
+  }
+
+  const baseSlug = name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 32);
+  const slug = `${baseSlug || 'tom'}_${Date.now().toString(36).slice(-4)}`;
+
+  const count = await prisma.aiTonePreset.count({ where: { tenantId: tenant.id } });
+  const created = await prisma.aiTonePreset.create({
+    data: {
+      tenantId: tenant.id,
+      slug,
+      name,
+      prompt,
+      sortOrder: count + 1,
+    },
+  });
+
+  revalidatePath('/ia-copiloto');
+  revalidatePath('/pacientes');
+  return { success: true, tone: created };
+}
+
+export async function updateTonePresetAction(payload: {
+  id: string;
+  name: string;
+  prompt: string;
+}) {
+  const tenant = await requireAiEnabledTenant();
+  const name = (payload.name || '').trim();
+  const prompt = (payload.prompt || '').trim();
+  if (!payload.id || !name || !prompt) {
+    throw new Error('Preencha o nome e o prompt do tom.');
+  }
+
+  await prisma.aiTonePreset.updateMany({
+    where: { id: payload.id, tenantId: tenant.id },
+    data: { name, prompt },
+  });
+
+  revalidatePath('/ia-copiloto');
+  revalidatePath('/pacientes');
+  return { success: true };
+}
+
+export async function deleteTonePresetAction(id: string) {
+  const tenant = await requireAiEnabledTenant();
+  const total = await prisma.aiTonePreset.count({ where: { tenantId: tenant.id } });
+  if (total <= 1) {
+    throw new Error('Mantenha ao menos um tom de conversa cadastrado.');
+  }
+
+  await prisma.aiTonePreset.deleteMany({
+    where: { id, tenantId: tenant.id },
+  });
+
+  revalidatePath('/ia-copiloto');
+  revalidatePath('/pacientes');
+  return { success: true };
+}

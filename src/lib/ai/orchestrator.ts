@@ -345,6 +345,9 @@ export async function runBemAgent(params: {
   extraContext?: string;
   emotionHints?: string[];
   frequencyHints?: string[];
+  strictKnowledgeScope?: boolean;
+  toneName?: string;
+  tonePromptInstruction?: string;
 }) {
   await ensureAiTables(params.tenantId);
 
@@ -365,6 +368,12 @@ export async function runBemAgent(params: {
     ? sanitizeClinicalDraft(params.userPrompt, patient.name)
     : params.userPrompt;
 
+  // Para o Agente de Pós-Sessão (ou quando solicitado explicitamente), restringe estritamente à base de conhecimento específica do agente
+  const useStrictScope =
+    params.strictKnowledgeScope !== undefined
+      ? params.strictKnowledgeScope
+      : params.agentSlug === 'pos_sessao';
+
   // 1. Busca RAG + Memórias + Contexto Operacional em paralelo
   const [ragResult, memoryContext, managementSnapshot, patientHistoryContext] = await Promise.all([
     retrieveBemKnowledge({
@@ -373,6 +382,7 @@ export async function runBemAgent(params: {
       query: sanitizedUserPrompt,
       emotionNames: params.emotionHints,
       frequencyNumbers: params.frequencyHints,
+      strictAgentOnly: useStrictScope,
     }),
     buildMemoryPromptContext({
       tenantId: params.tenantId,
@@ -416,13 +426,24 @@ export async function runBemAgent(params: {
           .join('\n\n')
       : '';
 
-  const systemInstruction = `${corePhilosophy}
+  const strictGuardrail = useStrictScope
+    ? `\n---
+REGRA RÍGIDA DE FIDELIDADE À BASE ESPECÍFICA DO AGENTE:
+- Restrinja-se ESTRITAMENTE aos materiais da Base de Conhecimento específica deste Agente (${agentConfig?.name || params.agentSlug}), ao Dicionário oficial de Emoções B.E.M., às Frequências Vibracionais B.E.M. e aos apontamentos reais da sessão fornecidos no prompt.
+- NÃO utilize conhecimentos gerais externos, NÃO invente técnicas/exercícios fora do escopo fornecido e NÃO misture abordagens psicológicas tradicionais que não constem na base.`
+    : '';
 
----
- PAPEL DO AGENTE ATUAL (${agentConfig?.name || params.agentSlug}):
+  const toneBlock = params.tonePromptInstruction
+    ? `\n---
+TOM DA CONVERSA SELECIONADO (${params.toneName || 'Personalizado'}):
+${params.tonePromptInstruction}`
+    : '';
+
+  const systemInstruction = `${useStrictScope ? '' : corePhilosophy + '\n\n---'}
+PAPEL DO AGENTE ATUAL (${agentConfig?.name || params.agentSlug}):
 ${agentConfig?.systemPrompt || ''}
 - Terapeuta responsável: ${tenant.name}
-${patient ? '- Nota LGPD: O paciente em foco está anonimizado como [PACIENTE]. Quando redigir mensagens destinadas ao paciente, use o marcador [PACIENTE] onde entraria o primeiro nome dele.' : ''}`;
+${patient ? '- Nota LGPD: O paciente em foco está anonimizado como [PACIENTE]. Quando redigir mensagens destinadas ao paciente, use o marcador [PACIENTE] onde entraria o primeiro nome dele.' : ''}${strictGuardrail}${toneBlock}`;
 
   const fullPrompt = `${ragResult.formattedContext}
 
@@ -564,6 +585,7 @@ export async function compilePostSessionFeedback(params: {
   tenantId: string;
   patientId: string;
   appointmentId?: string;
+  toneId?: string;
   rawNotes?: string;
   soap?: { subjective: string; objective: string; assessment: string; plan: string };
   emocoesTrabalhadas?: string[];
@@ -583,9 +605,19 @@ export async function compilePostSessionFeedback(params: {
 }) {
   await ensureAiTables(params.tenantId);
 
-  const patient = await prisma.patient.findFirst({
-    where: { id: params.patientId, tenantId: params.tenantId },
-  });
+  const [patient, selectedTone] = await Promise.all([
+    prisma.patient.findFirst({
+      where: { id: params.patientId, tenantId: params.tenantId },
+    }),
+    params.toneId
+      ? prisma.aiTonePreset.findFirst({
+          where: { id: params.toneId, tenantId: params.tenantId },
+        })
+      : prisma.aiTonePreset.findFirst({
+          where: { tenantId: params.tenantId },
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        }),
+  ]);
   if (!patient) throw new Error('Paciente não encontrado.');
 
   const allEmotions = Array.from(
@@ -638,12 +670,11 @@ ${allEmotions.join(', ') || 'Regulação bioenergética e presença'}
 Observações do Terapeuta na Sessão:
 ${sanitizeClinicalDraft(params.rawNotes || params.soap?.subjective || '', patient.name) || 'Sessão energética concluída.'}`;
 
-  const prompt = `Elabore uma mensagem de **Devolutiva Pós-Sessão da Terapia B.E.M.** pronta para enviar no WhatsApp de [PACIENTE] (entre 2 e 4 parágrafos fluidos, acolhedores e inspiradores para leitura no celular).
-Inclua obrigatoriamente:
-1. Acolhimento caloroso pela sessão energética realizada hoje.
-2. Uma síntese clara e integradora conectando as situações trabalhadas, as **emoções desbloqueadas/ancoradas** E o sentido vibracional das **Frequências B.E.M.** associadas a essas emoções (usando as descrições das Frequências fornecidas na base de conhecimento, traduzidas em linguagem viva e acessível para a rotina de [PACIENTE]).
-3. Uma Frase de Ancoragem conectada à nova expressão vibracional aberta hoje.
-4. Uma orientação simples de percepção corporal/respiratória de 2 minutos para sustentar esse alinhamento energético nos próximos dias.`;
+  const prompt = `Elabore uma mensagem de **Devolutiva Pós-Sessão da Terapia B.E.M.** pronta para o terapeuta enviar manualmente pelo WhatsApp a [PACIENTE] (texto limpo para WhatsApp, sem títulos técnicos frios, entre 2 e 4 parágrafos fluidos).
+${selectedTone ? `Adote rigorosamente o tom **"${selectedTone.name}"**: ${selectedTone.prompt}\n` : ''} Diretrizes obrigatórias:
+1. Analise diretamente as questões/protocolos trabalhados na sessão, as **emoções apontadas** e as **Frequências B.E.M.** associadas a cada emoção.
+2. Restrinja-se EXCLUSIVAMENTE à base de conhecimento específica do Agente de Devolutiva & Pós-Sessão e às descrições das Emoções e Frequências fornecidas acima (não invente conceitos externos).
+3. Integre de forma clara e construtiva o sentido das emoções e frequências trabalhadas para o momento de [PACIENTE], incluindo frase de ancoragem se pertinente na base.`;
 
   const agentRes = await runBemAgent({
     tenantId: params.tenantId,
@@ -653,6 +684,9 @@ Inclua obrigatoriamente:
     extraContext: sessionContext,
     emotionHints: allEmotions,
     frequencyHints: allFreqNumbers,
+    strictKnowledgeScope: true,
+    toneName: selectedTone?.name,
+    tonePromptInstruction: selectedTone?.prompt,
   });
 
   // Registra memória estruturada da sessão na ficha evolutiva do paciente

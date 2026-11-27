@@ -192,6 +192,7 @@ export async function saveClinicalRecordAction({
 export async function compilePatientFeedbackAction(payload: {
   patientId: string;
   appointmentId?: string;
+  toneId?: string;
   rawNotes?: string;
   soap?: { subjective: string; objective: string; assessment: string; plan: string };
   emocoesTrabalhadas?: string[];
@@ -210,11 +211,18 @@ export async function compilePatientFeedbackAction(payload: {
   const tenant = await getCurrentTenant();
   if (!tenant) throw new Error('Tenant não encontrado.');
 
+  const { getCurrentUserContext } = await import('@/lib/admin-guard');
+  const userCtx = await getCurrentUserContext();
+  if (!tenant.aiAgentsEnabled && !userCtx?.isSuperAdmin) {
+    throw new Error('Seu consultório não possui permissão ativa para uso dos Agentes de IA.');
+  }
+
   const { compilePostSessionFeedback } = await import('@/lib/ai/orchestrator');
   const res = await compilePostSessionFeedback({
     tenantId: tenant.id,
     patientId: payload.patientId,
     appointmentId: payload.appointmentId,
+    toneId: payload.toneId,
     rawNotes: payload.rawNotes,
     soap: payload.soap,
     emocoesTrabalhadas: payload.emocoesTrabalhadas,

@@ -68,6 +68,37 @@ Diretrizes:
   },
 ] as const;
 
+export const DEFAULT_TONE_PRESETS = [
+  {
+    slug: 'descontraido',
+    name: 'Descontraído',
+    sortOrder: 1,
+    prompt:
+      'Escreva em tom leve, próximo, humano e caloroso, como uma conversa carinhosa e natural no WhatsApp. Use linguagem simples do dia a dia, acolhedora e fluida, evitando jargões rebuscados ou rigidez formal.',
+  },
+  {
+    slug: 'formal_elegante',
+    name: 'Formal e Elegante',
+    sortOrder: 2,
+    prompt:
+      'Escreva em tom acolhedor, polido, refinado e elegante. Utilize vocabulário cuidadoso, fluido e respeitoso, transmitindo serenidade, segurança profissional e sofisticação sem soar frio ou distante.',
+  },
+  {
+    slug: 'formal_tecnico',
+    name: 'Formal e Técnico',
+    sortOrder: 3,
+    prompt:
+      'Escreva em tom estruturado, claro e técnico-terapêutico dentro da metodologia B.E.M. Explique de maneira objetiva a relação entre os protocolos trabalhados, as emoções identificadas e as frequências associadas, mantendo precisão e clareza.',
+  },
+  {
+    slug: 'holistico_energetico',
+    name: 'Holístico Energético',
+    sortOrder: 4,
+    prompt:
+      'Escreva em tom profundo, integrativo e vibracional. Valorize a linguagem do campo bioenergético, a ressonância das frequências como expressões fundamentais da realidade, a reconexão corpo-consciência e a expansão interior.',
+  },
+] as const;
+
 /**
  * Garante que todas as tabelas e colunas da Central de Agentes B.E.M. existam no SQLite
  * mesmo em ambientes Docker standalone sem o binário CLI do Prisma.
@@ -354,6 +385,27 @@ export async function ensureAiTables(tenantId?: string) {
             `CREATE INDEX IF NOT EXISTS "ProtocolNode_parentId_sortOrder_idx" ON "ProtocolNode"("parentId", "sortOrder")`
           );
 
+          // Tabela de Tons de Conversa configuráveis por consultório (Pós-Sessão / Devolutiva)
+          await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "AiTonePreset" (
+              "id" TEXT NOT NULL PRIMARY KEY,
+              "tenantId" TEXT NOT NULL,
+              "slug" TEXT NOT NULL,
+              "name" TEXT NOT NULL,
+              "prompt" TEXT NOT NULL,
+              "sortOrder" INTEGER NOT NULL DEFAULT 0,
+              "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              CONSTRAINT "AiTonePreset_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+            )
+          `);
+          await prisma.$executeRawUnsafe(
+            `CREATE UNIQUE INDEX IF NOT EXISTS "AiTonePreset_tenantId_slug_key" ON "AiTonePreset"("tenantId", "slug")`
+          );
+          await prisma.$executeRawUnsafe(
+            `CREATE INDEX IF NOT EXISTS "AiTonePreset_tenantId_sortOrder_idx" ON "AiTonePreset"("tenantId", "sortOrder")`
+          );
+
           // 1) Auto-seed e deduplicação automática de Emoções (remove registros duplicados preservando edições)
           const existingEmotions = await prisma.emotion.findMany({
             orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
@@ -502,6 +554,21 @@ export async function ensureTenantDefaults(tenantId: string) {
           deliveryMode: def.deliveryMode,
           autoMemory: true,
           enabled: true,
+        },
+      });
+    }
+  }
+
+  const toneCount = await prisma.aiTonePreset.count({ where: { tenantId } });
+  if (toneCount === 0) {
+    for (const tp of DEFAULT_TONE_PRESETS) {
+      await prisma.aiTonePreset.create({
+        data: {
+          tenantId,
+          slug: tp.slug,
+          name: tp.name,
+          prompt: tp.prompt,
+          sortOrder: tp.sortOrder,
         },
       });
     }

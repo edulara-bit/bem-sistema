@@ -12,11 +12,16 @@ export const metadata = {
     'Orquestração de Agentes Especialistas, Biblioteca RAG B.E.M., Memória Estruturada e Automações n8n',
 };
 
-export default async function CopilotoPage() {
+export default async function CopilotoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const [tenant, userCtx] = await Promise.all([
     getCurrentTenant(),
     getCurrentUserContext(),
   ]);
+  const { tab } = await searchParams;
   if (!tenant) {
     return <div className="p-8 text-sm text-gray-600">Consultório não autenticado.</div>;
   }
@@ -39,7 +44,7 @@ export default async function CopilotoPage() {
 
   await ensureAiTables(tenant.id);
 
-  const [freshTenant, agents, knowledgeSources, memories, patients, dispatches, programs] =
+  const [freshTenant, agents, knowledgeSources, memories, patients, dispatches, programs, tonePresets] =
     await Promise.all([
       prisma.tenant.findUnique({ where: { id: tenant.id } }),
       prisma.aiAgentConfig.findMany({
@@ -69,10 +74,15 @@ export default async function CopilotoPage() {
         orderBy: { updatedAt: 'desc' },
         take: 30,
       }),
+      prisma.aiTonePreset.findMany({
+        where: { tenantId: tenant.id },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      }),
     ]);
 
   return (
     <CopilotoView
+      initialMainTab={tab === 'tones' ? 'tones' : 'agents'}
       tenantConfig={{
         name: freshTenant?.name || tenant.name,
         slug: freshTenant?.slug || tenant.slug,
@@ -81,6 +91,12 @@ export default async function CopilotoPage() {
         aiDefaultDeliveryMode: (freshTenant?.aiDefaultDeliveryMode as 'review' | 'auto') || 'review',
         aiCorePhilosophy: freshTenant?.aiCorePhilosophy || DEFAULT_BEM_CORE_PHILOSOPHY,
       }}
+      tonePresets={tonePresets.map((tp) => ({
+        id: tp.id,
+        slug: tp.slug,
+        name: tp.name,
+        prompt: tp.prompt,
+      }))}
       agents={agents.map((a) => ({
         slug: a.slug as any,
         name: a.name,

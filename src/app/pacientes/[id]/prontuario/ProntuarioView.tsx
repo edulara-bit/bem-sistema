@@ -28,8 +28,18 @@ import {
   Settings,
   Pencil,
   RotateCcw,
+  MessageCircle,
+  Copy,
+  Check,
+  Send,
+  HeartHandshake,
 } from 'lucide-react';
-import { saveClinicalRecordAction, savePatientAnamnesisAction } from './actions';
+import {
+  saveClinicalRecordAction,
+  savePatientAnamnesisAction,
+  compilePatientFeedbackAction,
+  dispatchPatientFeedbackAction,
+} from './actions';
 import { getRootCategories, getSituationsByCategory } from '@/lib/protocols';
 import { PatientAiPanel } from './PatientAiPanel';
 import type { DecryptedMemoryItem } from '@/lib/ai/memory';
@@ -98,6 +108,7 @@ interface ProtocolNodeItem {
 
 export function ProntuarioView({
   patient,
+  tonePresets = [],
   appointmentId,
   defaultSessionDateStr = '',
   defaultSessionTimeStr = '14:00',
@@ -118,12 +129,14 @@ export function ProntuarioView({
   patient: {
     id: string;
     name: string;
+    phone?: string;
     notes?: string | null;
     modalityPreference?: string;
     sessionTypePreference?: string;
     packageTotalSessions?: number | null;
     packageUsedSessions?: number | null;
   };
+  tonePresets?: Array<{ id: string; name: string; prompt: string }>;
   appointmentId?: string;
   defaultSessionDateStr?: string;
   defaultSessionTimeStr?: string;
@@ -160,6 +173,85 @@ export function ProntuarioView({
   const [editingRecord, setEditingRecord] = useState<HistoricalRecord | null>(
     initialLinkedRecord
   );
+
+  // --- Estados do Gerador de Feedback Pós-Sessão dentro da Edição da Sessão ---
+  const [inlineToneId, setInlineToneId] = useState<string>(tonePresets[0]?.id || '');
+  const [inlineFeedbackText, setInlineFeedbackText] = useState<string>('');
+  const [inlineFeedbackSources, setInlineFeedbackSources] = useState<string[]>([]);
+  const [isGeneratingInlineFeedback, setIsGeneratingInlineFeedback] = useState(false);
+  const [copiedInlineFeedback, setCopiedInlineFeedback] = useState(false);
+  const [isSendingInlineWa, setIsSendingInlineWa] = useState(false);
+  const [inlineWaStatusMsg, setInlineWaStatusMsg] = useState<string | null>(null);
+
+  const getPatientDirectWhatsAppUrl = (text: string) => {
+    const digits = (patient.phone || '').replace(/\D/g, '');
+    const normalizedPhone = digits
+      ? digits.startsWith('55')
+        ? digits
+        : `55${digits}`
+      : '';
+    return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(text)}`;
+  };
+
+  const handleGenerateInlineFeedback = async () => {
+    if (
+      situacoesList.length === 0 &&
+      selectedEmotions.length === 0 &&
+      !rawNotes.trim()
+    ) {
+      alert(
+        'Adicione ao menos uma situação/protocolo, emoção ou observação na sessão para que o agente analise e monte o feedback.'
+      );
+      return;
+    }
+
+    setIsGeneratingInlineFeedback(true);
+    setInlineWaStatusMsg(null);
+    try {
+      const res = await compilePatientFeedbackAction({
+        patientId: patient.id,
+        appointmentId: editingRecord?.appointmentId || appointmentId,
+        toneId: inlineToneId || undefined,
+        rawNotes,
+        emocoesTrabalhadas: selectedEmotions,
+        situacoes: situacoesList,
+      });
+      setInlineFeedbackText(res.feedbackText || '');
+      setInlineFeedbackSources(res.sourcesUsed || []);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao gerar feedback pós-sessão.');
+    } finally {
+      setIsGeneratingInlineFeedback(false);
+    }
+  };
+
+  const handleSendInlineViaConnectedWa = async () => {
+    if (!inlineFeedbackText.trim()) return;
+    setIsSendingInlineWa(true);
+    setInlineWaStatusMsg(null);
+    try {
+      const res = await dispatchPatientFeedbackAction({
+        patientId: patient.id,
+        appointmentId: editingRecord?.appointmentId || appointmentId,
+        messageText: inlineFeedbackText,
+        deliveryMode: 'auto',
+      });
+      if (res.status === 'sent') {
+        setInlineWaStatusMsg('✓ Feedback enviado no WhatsApp do paciente com sucesso!');
+      } else {
+        const errDetail = 'error' in res && res.error ? res.error : '';
+        setInlineWaStatusMsg(
+          `⚠️ Aviso no disparo integrado: ${
+            errDetail || 'verifique o QR Code em Configurações ou use o botão Abrir no WhatsApp ao lado.'
+          }`
+        );
+      }
+    } catch (err: any) {
+      alert(err.message || 'Erro ao disparar WhatsApp.');
+    } finally {
+      setIsSendingInlineWa(false);
+    }
+  };
 
   const [sessionDateStr, setSessionDateStr] = useState<string>(
     initialLinkedRecord?.rawDateStr || defaultSessionDateStr || todayDateStr
@@ -1728,6 +1820,158 @@ export function ProntuarioView({
               </div>
             </div>
           </div>
+
+          {/* 4. SOLICITAR FEEDBACK PÓS-SESSÃO COM IA (DENTRO DA EDIÇÃO DA SESSÃO — EXCLUSIVO PARA TERAPEUTAS COM IA) */}
+          {aiAgentsEnabled && (
+            <div className="bg-white rounded-2xl border border-[#1F4D36]/30 shadow-sm p-5 sm:p-6 space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[#E8E5DF] pb-4">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#1F4D36] bg-[#EBF3ED] px-2.5 py-0.5 rounded-full">
+                    <HeartHandshake className="w-3.5 h-3.5" />
+                    Agente Exclusivo de Devolutiva & Pós-Sessão B.E.M.
+                  </div>
+                  <h2 className="text-sm sm:text-base font-bold text-[#222924]">
+                    4. Solicitar Feedback desta Sessão para {patient.name}
+                  </h2>
+                  <p className="text-[11px] text-[#6B726B]">
+                    Analisa as questões/protocolos, emoções e frequências desta sessão usando estritamente a base do Agente Pós-Sessão. Você pode editar o texto antes de enviar manualmente pelo WhatsApp.
+                  </p>
+                </div>
+
+                <Link
+                  href="/ia-copiloto?tab=tones"
+                  target="_blank"
+                  className="px-3 py-2 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] hover:bg-white text-xs font-semibold text-[#1F4D36] flex items-center gap-1.5 self-start lg:self-center shrink-0"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                  Editar Prompts dos Tons
+                </Link>
+              </div>
+
+              {/* Seleção do Tom da Conversa + Botão Gerar */}
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 bg-[#FBF9F5] p-4 rounded-xl border border-[#E8E5DF]">
+                <div className="space-y-2 flex-1">
+                  <label className="block text-xs font-bold text-[#222924]">
+                    Escolha o Tom da Conversa:
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {tonePresets.map((tp) => {
+                      const isSelected =
+                        (inlineToneId || tonePresets[0]?.id) === tp.id;
+                      return (
+                        <button
+                          key={tp.id}
+                          type="button"
+                          onClick={() => setInlineToneId(tp.id)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                            isSelected
+                              ? 'bg-[#1F4D36] text-white border-[#1F4D36] shadow-xs'
+                              : 'bg-white text-[#222924] border-[#E8E5DF] hover:border-[#1F4D36]/40'
+                          }`}
+                        >
+                          {tp.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={isGeneratingInlineFeedback}
+                  onClick={handleGenerateInlineFeedback}
+                  className="px-5 py-2.5 rounded-xl bg-[#1F4D36] text-white text-xs font-bold hover:bg-[#183C2A] disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 shadow-sm"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  {isGeneratingInlineFeedback
+                    ? 'Analisando Sessão e Montando Feedback...'
+                    : inlineFeedbackText
+                    ? 'Regerar Feedback com este Tom'
+                    : 'Solicitar Feedback da Sessão'}
+                </button>
+              </div>
+
+              {/* Texto Editável + Opções de Envio Manual no WhatsApp */}
+              {inlineFeedbackText && (
+                <div className="space-y-3 pt-1">
+                  {inlineFeedbackSources.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {inlineFeedbackSources.map((src, idx) => (
+                        <span
+                          key={idx}
+                          className="text-[10px] px-2 py-0.5 rounded-full bg-[#FBF9F5] border border-[#E8E5DF] text-[#6B726B]"
+                        >
+                          📚 {src}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#222924] mb-1">
+                      Texto do Feedback (edite livremente antes de enviar ao paciente):
+                    </label>
+                    <textarea
+                      rows={7}
+                      value={inlineFeedbackText}
+                      onChange={(e) => setInlineFeedbackText(e.target.value)}
+                      className="w-full p-4 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-xs sm:text-sm text-[#222924] leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/25 font-sans"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href={getPatientDirectWhatsAppUrl(inlineFeedbackText)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-black text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                      >
+                        <MessageCircle className="w-4 h-4 fill-black" />
+                        Abrir no WhatsApp (Envio Manual)
+                      </a>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(inlineFeedbackText);
+                          setCopiedInlineFeedback(true);
+                          setTimeout(() => setCopiedInlineFeedback(false), 2500);
+                        }}
+                        className="px-3.5 py-2.5 rounded-xl border border-[#E8E5DF] bg-white hover:bg-[#FBF9F5] text-xs font-bold text-[#222924] flex items-center gap-1.5"
+                      >
+                        {copiedInlineFeedback ? (
+                          <Check className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-gray-500" />
+                        )}
+                        {copiedInlineFeedback ? 'Texto Copiado!' : 'Copiar Texto'}
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={isSendingInlineWa}
+                      onClick={handleSendInlineViaConnectedWa}
+                      className="px-4 py-2.5 rounded-xl border border-[#1F4D36] bg-[#EBF3ED] hover:bg-[#1F4D36] text-[#1F4D36] hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all disabled:opacity-50"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      {isSendingInlineWa
+                        ? 'Enviando...'
+                        : 'Disparar via WhatsApp Conectado'}
+                    </button>
+                  </div>
+
+                  {inlineWaStatusMsg && (
+                    <div className="p-3 rounded-xl bg-[#EBF3ED] border border-[#1F4D36]/20 text-xs font-semibold text-[#1F4D36] flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      <span>{inlineWaStatusMsg}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -1887,7 +2131,8 @@ export function ProntuarioView({
       {/* ========================================================= */}
       {activeTab === 'ia_bem' && aiAgentsEnabled && (
         <PatientAiPanel
-          patient={{ id: patient.id, name: patient.name }}
+          patient={{ id: patient.id, name: patient.name, phone: patient.phone }}
+          tonePresets={tonePresets}
           appointmentId={appointmentId}
           draftRawNotes={rawNotes}
           draftSoap={{ subjective: '', objective: '', assessment: '', plan: '' }}

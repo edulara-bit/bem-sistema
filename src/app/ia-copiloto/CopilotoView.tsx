@@ -49,9 +49,19 @@ import {
   queueDirectAgentReplyAction,
   generateContentAction,
   testN8nWebhookAction,
+  createTonePresetAction,
+  updateTonePresetAction,
+  deleteTonePresetAction,
 } from './actions';
 import type { AgentSlug } from '@/lib/ai/orchestrator';
 import type { DecryptedMemoryItem, MemoryScope } from '@/lib/ai/memory';
+
+interface TonePresetItem {
+  id: string;
+  slug: string;
+  name: string;
+  prompt: string;
+}
 
 interface AgentConfigItem {
   slug: AgentSlug;
@@ -164,7 +174,9 @@ const QUICK_PROMPTS_BY_AGENT: Record<AgentSlug, string[]> = {
 };
 
 export function CopilotoView({
+  initialMainTab = 'agents',
   tenantConfig,
+  tonePresets = [],
   agents,
   knowledgeSources,
   memories,
@@ -172,6 +184,7 @@ export function CopilotoView({
   dispatches,
   programs,
 }: {
+  initialMainTab?: 'agents' | 'tones' | 'knowledge' | 'memories' | 'dispatches' | 'n8n';
   tenantConfig: {
     name: string;
     slug: string;
@@ -180,6 +193,7 @@ export function CopilotoView({
     aiDefaultDeliveryMode: 'review' | 'auto';
     aiCorePhilosophy: string;
   };
+  tonePresets?: TonePresetItem[];
   agents: AgentConfigItem[];
   knowledgeSources: KnowledgeItem[];
   memories: DecryptedMemoryItem[];
@@ -190,8 +204,21 @@ export function CopilotoView({
   const router = useRouter();
 
   const [mainTab, setMainTab] = useState<
-    'agents' | 'knowledge' | 'memories' | 'dispatches' | 'n8n'
-  >('agents');
+    'agents' | 'tones' | 'knowledge' | 'memories' | 'dispatches' | 'n8n'
+  >(initialMainTab);
+
+  // --- Estado Tons de Conversa ---
+  const [editableTones, setEditableTones] = useState<Record<string, { name: string; prompt: string }>>(() => {
+    const map: Record<string, { name: string; prompt: string }> = {};
+    for (const tp of tonePresets) {
+      map[tp.id] = { name: tp.name, prompt: tp.prompt };
+    }
+    return map;
+  });
+  const [newToneName, setNewToneName] = useState('');
+  const [newTonePrompt, setNewTonePrompt] = useState('');
+  const [savingToneId, setSavingToneId] = useState<string | null>(null);
+  const [savedToneFeedbackId, setSavedToneFeedbackId] = useState<string | null>(null);
 
   // --- Estado Estúdio de Agentes ---
   const [selectedAgentSlug, setSelectedAgentSlug] = useState<AgentSlug>('marketing');
@@ -576,6 +603,7 @@ export function CopilotoView({
         <div className="flex flex-wrap gap-1.5 bg-[#FBF9F5] p-1.5 rounded-2xl border border-[#E8E5DF]">
           {[
             { id: 'agents', label: 'Agentes B.E.M.', icon: Sparkles },
+            { id: 'tones', label: `Tons de Conversa (${tonePresets.length})`, icon: HeartHandshake },
             { id: 'knowledge', label: `Conhecimento (${knowledgeSources.length})`, icon: BookOpen },
             { id: 'memories', label: `Memórias (${memories.length})`, icon: Brain },
             {
@@ -1038,6 +1066,202 @@ export function CopilotoView({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= ABA TONS DE CONVERSA (PROMPTS EDITÁVEIS) ================= */}
+      {mainTab === 'tones' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Coluna Esquerda: Criar Novo Tom Personalizado */}
+          <div className="lg:col-span-4">
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newToneName.trim() || !newTonePrompt.trim()) return;
+                setSavingToneId('new');
+                try {
+                  const res = await createTonePresetAction({
+                    name: newToneName,
+                    prompt: newTonePrompt,
+                  });
+                  if (res.tone) {
+                    setEditableTones((prev) => ({
+                      ...prev,
+                      [res.tone.id]: { name: res.tone.name, prompt: res.tone.prompt },
+                    }));
+                  }
+                  setNewToneName('');
+                  setNewTonePrompt('');
+                  router.refresh();
+                } catch (err: any) {
+                  alert(err.message);
+                } finally {
+                  setSavingToneId(null);
+                }
+              }}
+              className="bg-white p-5 rounded-2xl border border-[#E8E5DF] shadow-sm space-y-4"
+            >
+              <div className="border-b border-[#E8E5DF] pb-3">
+                <h2 className="text-sm font-bold text-[#222924] flex items-center gap-2">
+                  <Plus className="w-4 h-4 text-[#1F4D36]" />
+                  Criar Novo Tom de Conversa
+                </h2>
+                <p className="text-[11px] text-[#6B726B] mt-0.5">
+                  Defina novos estilos de escrita para escolher ao gerar o feedback pós-sessão no Prontuário.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#222924] mb-1">
+                  Nome do Tom *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newToneName}
+                  onChange={(e) => setNewToneName(e.target.value)}
+                  placeholder="Ex: Acolhedor Poético, Direto e Prático..."
+                  className="w-full px-3.5 py-2 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-xs text-[#222924]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#222924] mb-1">
+                  Prompt de Instrução do Tom *
+                </label>
+                <textarea
+                  rows={5}
+                  required
+                  value={newTonePrompt}
+                  onChange={(e) => setNewTonePrompt(e.target.value)}
+                  placeholder="Descreva exatamente como a IA deve conduzir o vocabulário, ritmo, abertura e fechamento da mensagem neste tom..."
+                  className="w-full p-3 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-xs text-[#222924] leading-relaxed"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={savingToneId === 'new'}
+                className="w-full py-2.5 rounded-xl bg-[#1F4D36] text-white text-xs font-bold hover:bg-[#183C2A] disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                {savingToneId === 'new' ? 'Adicionando...' : 'Adicionar Tom de Conversa'}
+              </button>
+            </form>
+          </div>
+
+          {/* Coluna Direita: Lista de Tons com Prompts Editáveis */}
+          <div className="lg:col-span-8 space-y-4">
+            <div className="bg-white p-5 rounded-2xl border border-[#E8E5DF] shadow-sm">
+              <h2 className="text-sm font-bold text-[#222924] flex items-center gap-2">
+                <HeartHandshake className="w-4 h-4 text-[#1F4D36]" />
+                Prompts de Cada Tom de Conversa ({tonePresets.length})
+              </h2>
+              <p className="text-xs text-[#6B726B] mt-0.5">
+                Personalize livremente o prompt de cada tom (ex.: Descontraído, Formal e Elegante, Formal e Técnico, Holístico Energético). Ao gerar o feedback dentro da edição de uma sessão, o Agente Pós-Sessão seguirá exatamente o prompt do tom selecionado.
+              </p>
+            </div>
+
+            {tonePresets.map((tp) => {
+              const local = editableTones[tp.id] ?? { name: tp.name, prompt: tp.prompt };
+              const isSavingThis = savingToneId === tp.id;
+              const isSavedOk = savedToneFeedbackId === tp.id;
+
+              return (
+                <div
+                  key={tp.id}
+                  className="bg-white p-5 rounded-2xl border border-[#E8E5DF] shadow-xs space-y-3"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex-1">
+                      <label className="block text-[10px] font-bold uppercase text-[#6B726B] mb-1">
+                        Título do Tom
+                      </label>
+                      <input
+                        type="text"
+                        value={local.name}
+                        onChange={(e) =>
+                          setEditableTones((prev) => ({
+                            ...prev,
+                            [tp.id]: { ...local, name: e.target.value },
+                          }))
+                        }
+                        className="w-full sm:max-w-sm px-3 py-1.5 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-xs font-bold text-[#222924]"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-center">
+                      {isSavedOk && (
+                        <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Salvo!
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        disabled={isSavingThis}
+                        onClick={async () => {
+                          setSavingToneId(tp.id);
+                          try {
+                            await updateTonePresetAction({
+                              id: tp.id,
+                              name: local.name,
+                              prompt: local.prompt,
+                            });
+                            setSavedToneFeedbackId(tp.id);
+                            setTimeout(() => setSavedToneFeedbackId(null), 2500);
+                            router.refresh();
+                          } catch (err: any) {
+                            alert(err.message);
+                          } finally {
+                            setSavingToneId(null);
+                          }
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl bg-[#1F4D36] text-white text-xs font-bold hover:bg-[#183C2A] disabled:opacity-50"
+                      >
+                        {isSavingThis ? 'Salvando...' : 'Salvar Prompt'}
+                      </button>
+
+                      {tonePresets.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!confirm(`Deseja excluir o tom "${local.name}"?`)) return;
+                            try {
+                              await deleteTonePresetAction(tp.id);
+                              router.refresh();
+                            } catch (err: any) {
+                              alert(err.message);
+                            }
+                          }}
+                          title="Excluir tom"
+                          className="p-1.5 rounded-xl border border-red-100 text-red-500 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-[#6B726B] mb-1">
+                      Prompt de Estilo deste Tom
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={local.prompt}
+                      onChange={(e) =>
+                        setEditableTones((prev) => ({
+                          ...prev,
+                          [tp.id]: { ...local, prompt: e.target.value },
+                        }))
+                      }
+                      className="w-full p-3 rounded-xl border border-[#E8E5DF] bg-[#FBF9F5] text-xs text-[#222924] leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#1F4D36]/25"
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

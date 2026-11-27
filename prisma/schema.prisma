@@ -67,6 +67,7 @@ model Tenant {
   patientPrograms    PatientProgram[]
   aiDispatches       AiMessageDispatch[]
   agentThreads       AgentThread[]
+  tonePresets        AiTonePreset[]
 }
 
 model User {
@@ -483,6 +484,22 @@ model ProtocolNode {
   children  ProtocolNode[] @relation("ProtocolHierarchy")
 
   @@index([parentId, sortOrder])
+}
+
+model AiTonePreset {
+  id        String   @id @default(cuid())
+  tenantId  String
+  slug      String
+  name      String
+  prompt    String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, sortOrder])
 }
 
 

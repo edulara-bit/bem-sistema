@@ -329,13 +329,19 @@ function lexicalScore(query: string, candidate: string): number {
 
 export function scopeMatchesAgent(
   domainScope: string | null | undefined,
-  agentSlug: string
+  agentSlug: string,
+  strictAgentOnly = false
 ): boolean {
-  if (!domainScope || domainScope.trim() === '' || domainScope === 'all') return true;
+  if (!domainScope || domainScope.trim() === '' || domainScope === 'all') {
+    return !strictAgentOnly;
+  }
   const parts = domainScope
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+  if (strictAgentOnly) {
+    return parts.includes(agentSlug);
+  }
   return parts.includes('all') || parts.includes(agentSlug);
 }
 
@@ -348,22 +354,26 @@ export async function retrieveBemKnowledge(params: {
   query: string;
   emotionNames?: string[];
   frequencyNumbers?: string[];
+  strictAgentOnly?: boolean;
   topK?: number;
 }) {
   const topK = params.topK || 6;
+  const strictOnly = Boolean(params.strictAgentOnly);
 
-  // 1. Diretrizes fixadas (isPinned) deste escopo (suporta múltiplos agentes separados por vírgula) ou globais
+  // 1. Diretrizes fixadas (isPinned) deste escopo (se strictOnly=true, ignora materiais genéricos 'all')
   const rawPinned = await prisma.knowledgeSource.findMany({
     where: {
       tenantId: params.tenantId,
       isPinned: true,
-      OR: [{ domainScope: 'all' }, { domainScope: { contains: params.agentSlug } }],
+      ...(strictOnly
+        ? { domainScope: { contains: params.agentSlug } }
+        : { OR: [{ domainScope: 'all' }, { domainScope: { contains: params.agentSlug } }] }),
     },
     orderBy: { updatedAt: 'desc' },
     take: 12,
   });
   const pinnedSources = rawPinned
-    .filter((p) => scopeMatchesAgent(p.domainScope, params.agentSlug))
+    .filter((p) => scopeMatchesAgent(p.domainScope, params.agentSlug, strictOnly))
     .slice(0, 6);
 
   // 2. Chunks de fontes aplicáveis ao agente
@@ -372,7 +382,9 @@ export async function retrieveBemKnowledge(params: {
       tenantId: params.tenantId,
       source: {
         isPinned: false,
-        OR: [{ domainScope: 'all' }, { domainScope: { contains: params.agentSlug } }],
+        ...(strictOnly
+          ? { domainScope: { contains: params.agentSlug } }
+          : { OR: [{ domainScope: 'all' }, { domainScope: { contains: params.agentSlug } }] }),
       },
     },
     include: {
@@ -389,7 +401,7 @@ export async function retrieveBemKnowledge(params: {
     take: 300,
   });
   const candidateChunks = rawChunks.filter((c) =>
-    scopeMatchesAgent(c.source.domainScope, params.agentSlug)
+    scopeMatchesAgent(c.source.domainScope, params.agentSlug, strictOnly)
   );
 
   const queryVec = candidateChunks.length > 0 ? await embedSingleText(params.query) : null;

@@ -41,6 +41,7 @@ export default async function ProntuarioPage({
     freshTenant,
     userCtx,
     linkedAppointment,
+    tonePresets,
   ] = await Promise.all([
     prisma.emotion.findMany({
       orderBy: [{ title: 'asc' }],
@@ -79,6 +80,10 @@ export default async function ProntuarioPage({
           where: { id: appointmentId, tenantId: tenant.id },
         })
       : Promise.resolve(null),
+    prisma.aiTonePreset.findMany({
+      where: { tenantId: tenant.id },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    }),
   ]);
 
   frequencies.sort((a, b) =>
@@ -163,6 +168,13 @@ export default async function ProntuarioPage({
     ? formatAppointmentDateTime(linkedAppointment.scheduledAt)
     : null;
 
+  let decryptedPhone = '';
+  try {
+    decryptedPhone = decryptText(patient.phoneEnc);
+  } catch {
+    decryptedPhone = '';
+  }
+
   const isSuperAdmin = Boolean(userCtx?.isSuperAdmin);
   const aiAgentsEnabled = Boolean(freshTenant?.aiAgentsEnabled || isSuperAdmin);
 
@@ -171,12 +183,18 @@ export default async function ProntuarioPage({
       patient={{
         id: patient.id,
         name: patient.name,
+        phone: decryptedPhone,
         notes: patient.notes,
         modalityPreference: patient.modalityPreference,
         sessionTypePreference: patient.sessionTypePreference,
         packageTotalSessions: patient.packageTotalSessions,
         packageUsedSessions: patient.packageUsedSessions,
       }}
+      tonePresets={tonePresets.map((t) => ({
+        id: t.id,
+        name: t.name,
+        prompt: t.prompt,
+      }))}
       appointmentId={appointmentId}
       defaultSessionDateStr={linkedParts?.dateStr || nowParts.dateStr}
       defaultSessionTimeStr={linkedParts?.timeStr || nowParts.timeStr}
