@@ -117,6 +117,7 @@ export async function cancelAppointmentAction(id: string, reason?: string) {
   return { success: true };
 }
 
+
 export async function reactivateAppointmentAction(id: string) {
   const tenant = await getCurrentTenant();
   if (!tenant) throw new Error('Tenant não encontrado.');
@@ -170,6 +171,7 @@ export async function reactivateAppointmentAction(id: string) {
   revalidatePath('/financeiro');
   return { success: true };
 }
+
 
 export async function updateAppointmentStatusAction(id: string, status: string) {
   const tenant = await getCurrentTenant();
@@ -226,5 +228,52 @@ export async function saveWeeklyRulesAction(rules: { dayOfWeek: number; enabled:
   }
 
   revalidatePath('/agenda');
+  return { success: true };
+}
+
+export async function deleteAppointmentAction(id: string) {
+  const tenant = await getCurrentTenant();
+  if (!tenant) throw new Error('Tenant não encontrado.');
+
+  const { prisma: prismaClient } = await import('@/lib/prisma');
+  const app = await prismaClient.appointment.findFirst({
+    where: { id, tenantId: tenant.id },
+    include: { record: true, patient: true },
+  });
+
+  if (!app) {
+    throw new Error('Sessão não encontrada.');
+  }
+
+  // Se já possuía prontuário apontado e o paciente usa pacote, devolve 1 crédito de sessão
+  if (
+    app.record &&
+    app.patient &&
+    (app.patient.sessionTypePreference === 'package' || app.patient.packageId) &&
+    (app.patient.packageUsedSessions || 0) > 0
+  ) {
+    await prismaClient.patient.update({
+      where: { id: app.patient.id },
+      data: {
+        packageUsedSessions: Math.max(0, (app.patient.packageUsedSessions || 0) - 1),
+      },
+    });
+  }
+
+  if (app.record) {
+    await prismaClient.clinicalRecord.delete({ where: { id: app.record.id } });
+  }
+  await prismaClient.financialTransaction.deleteMany({
+    where: { tenantId: tenant.id, appointmentId: app.id },
+  });
+  await prismaClient.appointment.delete({
+    where: { id: app.id },
+  });
+
+  revalidatePath('/agenda');
+  revalidatePath(`/pacientes/${app.patientId}/prontuario`);
+  revalidatePath('/pacientes');
+  revalidatePath('/financeiro');
+  revalidatePath('/');
   return { success: true };
 }

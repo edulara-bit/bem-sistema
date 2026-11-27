@@ -36,6 +36,7 @@ import {
   updateAppointmentStatusAction,
   rescheduleAppointmentAction,
   cancelAppointmentAction,
+  deleteAppointmentAction,
   reactivateAppointmentAction,
   toggleSlotBlockAction,
   blockFullDateAction,
@@ -820,6 +821,34 @@ export function AgendaView({
                             <Sparkles className="w-3.5 h-3.5 text-gray-500" />
                             Prontuário
                           </Link>
+                          <button
+                            type="button"
+                            disabled={isProcessingAction}
+                            onClick={async () => {
+                              if (
+                                !confirm(
+                                  `Deseja EXCLUIR PERMANENTEMENTE esta sessão de ${app.patient.name} (${dateFormatted} às ${timeFormatted})? Isso removerá o agendamento, cobrança pendente e eventuais apontamentos.`
+                                )
+                              )
+                                return;
+                              setIsProcessingAction(true);
+                              try {
+                                await deleteAppointmentAction(app.id);
+                                setAppointmentsList((prev) =>
+                                  prev.filter((a) => a.id !== app.id)
+                                );
+                                router.refresh();
+                              } catch (err: any) {
+                                alert('Erro ao excluir sessão: ' + err.message);
+                              } finally {
+                                setIsProcessingAction(false);
+                              }
+                            }}
+                            className="px-2.5 py-1.5 rounded-xl border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 text-xs font-bold flex items-center gap-1 transition-all"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Excluir
+                          </button>
                         </>
                       ) : (
                         <>
@@ -849,10 +878,40 @@ export function AgendaView({
                                 time: timeFormatted,
                               })
                             }
+                            className="px-2.5 py-1.5 rounded-xl border border-amber-200 text-amber-700 hover:bg-amber-50 text-xs font-semibold flex items-center gap-1 transition-all"
+                          >
+                            <Ban className="w-3.5 h-3.5" />
+                            Cancelar
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={isProcessingAction}
+                            onClick={async () => {
+                              if (
+                                !confirm(
+                                  `Deseja EXCLUIR PERMANENTEMENTE esta sessão de ${app.patient.name} (${dateFormatted} às ${timeFormatted})? Isso apagará o agendamento, cobrança vinculada e apontamentos da sessão.`
+                                )
+                              )
+                                return;
+                              setIsProcessingAction(true);
+                              try {
+                                await deleteAppointmentAction(app.id);
+                                setAppointmentsList((prev) =>
+                                  prev.filter((a) => a.id !== app.id)
+                                );
+                                router.refresh();
+                              } catch (err: any) {
+                                alert('Erro ao excluir sessão: ' + err.message);
+                              } finally {
+                                setIsProcessingAction(false);
+                              }
+                            }}
+                            title="Excluir definitivamente esta sessão"
                             className="px-2.5 py-1.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold flex items-center gap-1 transition-all"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
-                            Cancelar
+                            Excluir
                           </button>
 
                           <Link

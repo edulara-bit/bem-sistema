@@ -189,6 +189,71 @@ export async function saveClinicalRecordAction({
   return { success: true, recordId: savedRecordId, updated: isEditingExisting };
 }
 
+export async function deleteClinicalRecordAction({
+  recordId,
+  patientId,
+  alsoDeleteAppointment = true,
+}: {
+  recordId: string;
+  patientId: string;
+  alsoDeleteAppointment?: boolean;
+}) {
+  const tenant = await getCurrentTenant();
+  if (!tenant) throw new Error('Consultório não encontrado.');
+
+  const record = await prisma.clinicalRecord.findFirst({
+    where: { id: recordId, tenantId: tenant.id, patientId },
+  });
+
+  if (!record) {
+    throw new Error('Sessão não encontrada ou já excluída.');
+  }
+
+  const db = getTenantDb(tenant.id);
+  const patient = await db.patients.findUnique(patientId);
+
+  // 1. Remove o apontamento clínico da sessão
+  await prisma.clinicalRecord.delete({
+    where: { id: record.id },
+  });
+
+  // 2. Devolve 1 crédito de pacote caso o paciente esteja vinculado a pacote
+  if (
+    patient &&
+    (patient.sessionTypePreference === 'package' || patient.packageId) &&
+    (patient.packageUsedSessions || 0) > 0
+  ) {
+    await db.patients.update(patientId, {
+      packageUsedSessions: Math.max(0, (patient.packageUsedSessions || 0) - 1),
+    });
+  }
+
+  // 3. Se havia agendamento vinculado na Agenda
+  if (record.appointmentId) {
+    if (alsoDeleteAppointment) {
+      await prisma.financialTransaction.deleteMany({
+        where: { tenantId: tenant.id, appointmentId: record.appointmentId },
+      });
+      await prisma.appointment.deleteMany({
+        where: { id: record.appointmentId, tenantId: tenant.id },
+      });
+    } else {
+      await prisma.appointment.updateMany({
+        where: { id: record.appointmentId, tenantId: tenant.id },
+        data: { status: 'scheduled' },
+      });
+    }
+  }
+
+  revalidatePath(`/pacientes/${patientId}/prontuario`);
+  revalidatePath('/agenda');
+  revalidatePath('/pacientes');
+  revalidatePath('/financeiro');
+  revalidatePath('/');
+
+  return { success: true };
+}
+
 export async function compilePatientFeedbackAction(payload: {
   patientId: string;
   appointmentId?: string;
